@@ -2,12 +2,12 @@
 export TASK_NAME=$1
 export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-# model_name_or_path=roberta-base
-model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
-hub_model_id="${model_name_or_path/\//"-"}-${TASK_NAME}"
-output_dir="./fine-tune/$model_name_or_path/$TASK_NAME/"
-# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue.py \
-python run_glue.py \
+model_name_or_path=roberta-base
+# model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
+hub_model_id="self-weighted-${model_name_or_path/\//"-"}-${TASK_NAME}"
+output_dir="./fine-tune/self-weighted-$model_name_or_path/$TASK_NAME/"
+# python run_glue.py \
+python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue.py \
   --model_name_or_path $model_name_or_path \
   --task_name $TASK_NAME \
   --do_train \

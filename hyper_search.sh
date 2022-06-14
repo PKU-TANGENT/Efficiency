@@ -3,7 +3,8 @@ export TASK_NAME=$1
 export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 model_name_or_path=roberta-base
-# model_name_or_path=princeton-nlp/unsup-simcse-bert-base-uncased
+# model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
+hub_model_id="${model_name_or_path/\//"-"}-${TASK_NAME}-hypersearch"
 output_dir="./fine-tune/$model_name_or_path/$TASK_NAME/"
 # python run_glue_hyper_search.py \
 python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
@@ -15,9 +16,16 @@ python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_searc
   --per_device_eval_batch_size 8 \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
-  --evaluation_strategy "steps" \
+  --num_train_epochs 10 \
+  --evaluation_strategy "epoch" \
+  --save_strategy "epoch" \
   --save_total_limit 1 \
-  --output_dir $output_dir
+  --output_dir $output_dir \
+  --overwrite_output_dir \
+  --hub_model_id $hub_model_id \
+  --push_to_hub \
+  --load_best_model_at_end \
+  --greater_is_better True
+  # --private
 find $output_dir -name *optimizer.pt -delete
 find $output_dir -name *scheduler.pt -delete
-find $output_dir -path *checkpoint*pytorch_model.bin -delete

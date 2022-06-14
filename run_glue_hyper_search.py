@@ -22,7 +22,7 @@ import random
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
-
+from huggingface_hub import update_repo_visibility
 import datasets
 import numpy as np
 from datasets import load_dataset, load_metric
@@ -40,6 +40,7 @@ from transformers import (
     TrainingArguments,
     default_data_collator,
     set_seed,
+    EarlyStoppingCallback,
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
@@ -61,6 +62,18 @@ task_to_keys = {
     "sst2": ("sentence", None),
     "stsb": ("sentence1", "sentence2"),
     "wnli": ("sentence1", "sentence2"),
+}
+
+task_to_metrics = {
+    "cola": "matthews_correlation",
+    "mnli": "accuracy",
+    "mrpc": "accuracy",
+    "qnli": "accuracy",
+    "qqp": "accuracy",
+    "rte": "accuracy",
+    "sst2": "accuracy",
+    "stsb": "spearmanr",
+    "wnli": "accuracy",
 }
 
 logger = logging.getLogger(__name__)
@@ -141,7 +154,9 @@ class DataTrainingArguments:
         default=None, metadata={"help": "A csv or a json file containing the validation data."}
     )
     test_file: Optional[str] = field(default=None, metadata={"help": "A csv or a json file containing the test data."})
-
+    early_stopping_patience: Optional[int] = field(
+        default=3, metadata={"help": "Number of epochs to wait before early stopping."}
+    )
     def __post_init__(self):
         if self.task_name is not None:
             self.task_name = self.task_name.lower()
@@ -199,6 +214,10 @@ class ModelArguments:
     ignore_mismatched_sizes: bool = field(
         default=False,
         metadata={"help": "Will enable to load a pretrained model whose head dimensions are different."},
+    )
+    private: bool = field(
+        default=False,
+        metadata={"help": "Whether to create private repo on huggingface."},
     )
 
 
@@ -507,7 +526,7 @@ def main():
         data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
     else:
         data_collator = None
-
+    training_args.metric_for_best_model = task_to_metrics[data_args.task_name]
     # Initialize our Trainer
     trainer = Trainer(
         args=training_args,
@@ -516,19 +535,25 @@ def main():
         compute_metrics=compute_metrics,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=data_args.early_stopping_patience)],
         model_init=model_init,
     )
     def my_hp_space_ray(trial):
         from ray import tune
-
         return {
-            "learning_rate": tune.choice([1e-5, 2e-5, 3e-5]),
-            "num_train_epochs": tune.choice([2,5,10]),
-            "seed": tune.randint(range(1, 99)),
-            "per_device_train_batch_size": tune.choice([ 16, 32]),
+            "learning_rate":tune.grid_search([2e-5]),
+            "per_device_train_batch_size": tune.grid_search([ 16, 32]),
         }
+        # return {
+            # "learning_rate": tune.grid_search([1e-5, 2e-5, 3e-5]),
+            # "per_device_train_batch_size": tune.grid_search([ 16, 32]),
+        # }
+    def compute_objective(metrics):
+        metric_key = task_to_metrics[data_args.task_name]
+        metric_key = metric_key if metric_key in metrics else "eval_" + metric_key
+        return metrics[metric_key]
     if training_args.do_train:
-        best_run = trainer.hyperparameter_search(direction="maximize", hp_space=my_hp_space_ray)
+        best_run = trainer.hyperparameter_search(direction="maximize", hp_space=my_hp_space_ray, compute_objective=compute_objective)
         for n, v in best_run.hyperparameters.items():
             setattr(trainer.args, n, v)    
     # Training
@@ -616,6 +641,7 @@ def main():
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)
+        update_repo_visibility(training_args.hub_model_id, private=model_args.private)
     else:
         trainer.create_model_card(**kwargs)
 
