@@ -26,7 +26,7 @@ from huggingface_hub import update_repo_visibility
 import datasets
 import numpy as np
 from datasets import load_dataset, load_metric
-
+import importlib
 import transformers
 from transformers import (
     AutoConfig,
@@ -219,6 +219,35 @@ class ModelArguments:
         default=False,
         metadata={"help": "Whether to create private repo on huggingface."},
     )
+    custom_model: bool = field(
+        default=True,
+        metadata={"help": "Whether to use a custom model or not."},
+    )
+    model_class_name: str = field(
+        default="SelfWeightedRobertaForSequenceClassification",
+        metadata={"help": "Name of the model class to use."},
+    )
+    model_package_name: str = field(
+        default="modeling_self_weighted_roberta",
+        metadata={"help": "Name of the model package to use."},
+    )
+    model_head_lr: float = field(
+        default=2e-4,
+        metadata={"help": "Learning rate for the model head."},
+    )
+    custom_trainer: bool = field(
+        default=True,
+        metadata={"help": "Whether to use a custom trainer or not."},
+    )
+    trainer_class_name: str = field(
+        default="SelfWeightedTrainer",
+        metadata={"help": "Name of the trainer class to use."},
+    )
+    trainer_package_name: str = field(
+        default="self_weighted_trainer",
+        metadata={"help": "Name of the trainer package to use."},
+    )
+
 
 
 def main():
@@ -380,7 +409,12 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    model = AutoModelForSequenceClassification.from_pretrained(
+    model_class = getattr(
+        importlib.import_module(f"..{model_args.model_package_name}", package="models.subpkg"), 
+        model_args.model_class_name
+        ) if model_args.custom_model else AutoModelForSequenceClassification
+    model_init_kwargs = {} if not model_args.custom_model else {"model_args": model_args}
+    model = model_class.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
@@ -388,6 +422,7 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
+        **model_init_kwargs,
     )
 
     # Preprocessing the raw_datasets
@@ -524,7 +559,11 @@ def main():
         data_collator = None
     training_args.metric_for_best_model = task_to_metrics[data_args.task_name]
     # Initialize our Trainer
-    trainer = Trainer(
+    trainer_class = getattr(
+        importlib.import_module(f"..{model_args.trainer_package_name}", package="trainers.subpkg"),
+        model_args.trainer_class_name,
+        ) if model_args.custom_trainer else Trainer
+    trainer = trainer_class(
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
