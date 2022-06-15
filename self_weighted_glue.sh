@@ -13,9 +13,9 @@ python self_weighted_glue.py \
   --do_train \
   --do_eval \
   --max_seq_length 128 \
-  --per_device_train_batch_size 8 \
-  --per_device_eval_batch_size 1 \
-  --gradient_accumulation_steps 2 \
+  --per_device_train_batch_size 16 \
+  --per_device_eval_batch_size 8 \
+  --gradient_accumulation_steps 1 \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
