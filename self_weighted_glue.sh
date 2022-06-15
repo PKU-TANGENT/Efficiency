@@ -13,8 +13,9 @@ python self_weighted_glue.py \
   --do_train \
   --do_eval \
   --max_seq_length 128 \
-  --per_device_train_batch_size 16 \
-  --per_device_eval_batch_size 8 \
+  --per_device_train_batch_size 8 \
+  --per_device_eval_batch_size 1 \
+  --gradient_accumulation_steps 2 \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
@@ -23,13 +24,13 @@ python self_weighted_glue.py \
   --save_strategy "epoch" \
   --save_total_limit 1 \
   --output_dir $output_dir \
-  --overwrite_output_dir \
   --hub_model_id $hub_model_id \
   --push_to_hub \
   --load_best_model_at_end \
   --greater_is_better True \
   --private
-find $output_dir -name *optimizer.pt -delete
-find $output_dir -name *scheduler.pt -delete
+  # --overwrite_output_dir \
+# find $output_dir -name *optimizer.pt -delete
+# find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete
 # rm -rf $output_dir/.git

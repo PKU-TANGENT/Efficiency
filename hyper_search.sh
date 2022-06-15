@@ -27,5 +27,5 @@ python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_searc
   --load_best_model_at_end \
   --greater_is_better True
   # --private
-find $output_dir -name *optimizer.pt -delete
-find $output_dir -name *scheduler.pt -delete
+# find $output_dir -name *optimizer.pt -delete
+# find $output_dir -name *scheduler.pt -delete

@@ -19,6 +19,6 @@ python run_glue.py \
   --num_train_epochs 5 \
   --output_dir $output_dir \
   --push_to_hub
-find $output_dir -name *optimizer.pt -delete
-find $output_dir -name *scheduler.pt -delete
-find $output_dir -path *checkpoint*pytorch_model.bin -delete
+# find $output_dir -name *optimizer.pt -delete
+# find $output_dir -name *scheduler.pt -delete
+# find $output_dir -path *checkpoint*pytorch_model.bin -delete

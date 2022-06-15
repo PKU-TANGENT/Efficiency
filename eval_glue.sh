@@ -26,8 +26,8 @@ python run_glue.py \
   --hub_model_id $hub_model_id \
   --push_to_hub \
   --load_best_model_at_end
-find $output_dir -name *optimizer.pt -delete
-find $output_dir -name *scheduler.pt -delete
-find $output_dir -name *pytorch_model.bin -delete
+# find $output_dir -name *optimizer.pt -delete
+# find $output_dir -name *scheduler.pt -delete
+# find $output_dir -name *pytorch_model.bin -delete
 # rm -rf $output_dir/.git
 # rm -rf $eval_output_dir
