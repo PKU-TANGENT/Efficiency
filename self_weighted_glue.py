@@ -247,6 +247,14 @@ class ModelArguments:
         default="self_weighted_trainer",
         metadata={"help": "Name of the trainer package to use."},
     )
+    prediction_ignore_loss: bool = field(
+        default=False,
+        metadata={"help": "Whether to ignore the loss during prediction or not."},
+    )
+    return_hidden_states: bool = field(
+        default=False,
+        metadata={"help": "Whether to return hidden states or not."},
+    )
 
 
 
@@ -389,6 +397,7 @@ def main():
             label_list = raw_datasets["train"].unique("label")
             label_list.sort()  # Let's sort it for determinism
             num_labels = len(label_list)
+    model_args.is_regression = is_regression
 
     # Load pretrained model and tokenizer
     #
@@ -538,7 +547,7 @@ def main():
     # predictions and label_ids field) and has to return a dictionary string to float.
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
-        preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
+        # preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if data_args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)
             if len(result) > 1:

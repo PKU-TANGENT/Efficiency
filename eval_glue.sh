@@ -6,10 +6,9 @@ model_name_or_path=roberta-base
 # model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
 hub_model_id="${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/$model_name_or_path/$TASK_NAME/"
-eval_output_dir="./eval/$model_name_or_path/$TASK_NAME/"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue.py \
 python run_glue.py \
-  --model_name_or_path $output_dir \
+  --model_name_or_path $model_name_or_path \
   --task_name $TASK_NAME \
   --do_eval \
   --max_seq_length 128 \
@@ -22,12 +21,14 @@ python run_glue.py \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \
-  --output_dir $eval_output_dir \
+  --output_dir $output_dir \
+  --overwrite_output_dir \
   --hub_model_id $hub_model_id \
   --push_to_hub \
-  --load_best_model_at_end
+  --load_best_model_at_end \
+  --greater_is_better True \
+  # --private
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete
 # rm -rf $output_dir/.git
-# rm -rf $eval_output_dir

@@ -82,13 +82,14 @@ class SelfWeightedRobertaForSequenceClassification(RobertaPreTrainedModel):
                 loss = loss_fct(logits, labels)
 
         if not return_dict:
+            raise ValueError("please implement the following block")
             output = (logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
 
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
-            hidden_states=outputs.hidden_states,
+            hidden_states=outputs.hidden_states if self.model_args.return_hidden_states else None,
             attentions=outputs.attentions,
         )
       

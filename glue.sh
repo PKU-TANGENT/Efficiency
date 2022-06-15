@@ -2,8 +2,8 @@
 export TASK_NAME=$1
 export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-model_name_or_path=roberta-base
-# model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
+# model_name_or_path=roberta-base
+model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
 hub_model_id="${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/$model_name_or_path/$TASK_NAME/"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue.py \
@@ -29,7 +29,7 @@ python run_glue.py \
   --push_to_hub \
   --load_best_model_at_end \
   --greater_is_better True \
-  # --private
+  --private
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete
