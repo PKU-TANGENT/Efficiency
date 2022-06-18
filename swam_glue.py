@@ -232,7 +232,7 @@ class ModelArguments:
         metadata={"help": "Name of the model package to use."},
     )
     model_head_lr: float = field(
-        default=2e-3,
+        default=2e-4,
         metadata={"help": "Learning rate for the model head."},
     )
     custom_trainer: bool = field(
@@ -484,14 +484,14 @@ def main():
             f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
         )
     max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
-    sentence_keys = [sentence1_key, sentence2_key] if sentence2_key is not None else [sentence1_key]
+
     def preprocess_function(examples):
-        result = {}
-        for i, sentence_key in enumerate(sentence_keys):
-            tmp_result = tokenizer(examples[sentence_key], padding=padding, max_length=max_seq_length, truncation=True)
-            for k,v in tmp_result.items():
-                result[k+f"_{i}"] = v
         # Tokenize the texts
+        args = (
+            (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
+        )
+        result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+
         # Map labels to IDs (not necessary for GLUE tasks)
         if label_to_id is not None and "label" in examples:
             result["label"] = [(label_to_id[l] if l != -1 else -1) for l in examples["label"]]
