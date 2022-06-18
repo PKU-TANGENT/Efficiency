@@ -89,7 +89,6 @@ class SelfWeightedRobertaForSequenceClassification(RobertaPreTrainedModel):
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
-            hidden_states=outputs.hidden_states if self.model_args.return_hidden_states else None,
-            attentions=outputs.attentions,
+            hidden_states=outputs.hidden_states if output_hidden_states else None,
+            attentions=weights,
         )
-      

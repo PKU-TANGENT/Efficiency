@@ -59,7 +59,8 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         word_embeddings = hidden_states[0]
         last_hidden_state = outputs.last_hidden_state
         swam_outputs, weights = self.swam(word_embeddings, last_hidden_state, attention_mask)
-        logits = self.classifier(swam_outputs)
+        concated_outputs = torch.concat([swam_outputs[:batch_size], swam_outputs[batch_size:]], dim=-1)
+        logits = self.classifier(concated_outputs)
         loss = None
         if labels is not None:
             if self.config.problem_type is None:
@@ -91,6 +92,6 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
-            hidden_states=outputs.hidden_states if self.model_args.return_hidden_states else None,
-            attentions=outputs.attentions,
+            hidden_states=outputs.hidden_states if output_hidden_states else None,
+            attentions=weights if output_attentions else None,
         )
