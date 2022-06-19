@@ -4,7 +4,7 @@ export TOKENIZERS_PARALLELISM=false
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=6
+export CUDA_VISIBLE_DEVICES=7
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="swam-"
@@ -33,7 +33,8 @@ python swam_glue.py \
   --load_best_model_at_end \
   --greater_is_better True \
   --private \
-# --overwrite_output_dir \
+  --early_stopping_patience 10 \
+  # --overwrite_output_dir \
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete

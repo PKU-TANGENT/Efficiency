@@ -3,9 +3,18 @@ import torch.nn as nn
 import importlib
 from transformers.models.roberta.modeling_roberta import RobertaPreTrainedModel, RobertaModel, RobertaClassificationHead
 from typing import List, Optional, Tuple, Union
-from .swam import SWAM, SWAMClassificationHead
+from .swam import SWAM
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
+class SWAMRobertaClassificationHead(RobertaClassificationHead):
+    """Head for sentence-level classification tasks."""
+    def forward(self, features, **kwargs):
+        x = self.dropout(features)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     def __init__(self, config, *args, **kwargs):
@@ -16,7 +25,7 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         self.model_args = kwargs.pop('model_args', None)
         self.roberta = RobertaModel(config, add_pooling_layer=False)
         self.swam = SWAM(config)
-        self.classifier = SWAMClassificationHead(config)
+        self.classifier = SWAMRobertaClassificationHead(config)
         self.post_init()
     def forward(
         self,
@@ -30,6 +39,7 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        force_swam_weight: Optional[torch.FloatTensor] = None,
     ):
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -45,9 +55,14 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
             return_dict=return_dict,
         )
         hidden_states = outputs.hidden_states
-        word_embeddings = hidden_states[0]
+        word_embedding = hidden_states[0]
         last_hidden_state = outputs.last_hidden_state
-        swam_outputs, weights = self.swam(word_embeddings, last_hidden_state, attention_mask)
+        swam_outputs, weights = self.swam(
+            word_embedding=word_embedding, 
+            last_hidden_state=last_hidden_state, 
+            attention_mask=attention_mask,
+            force_swam_weight=force_swam_weight
+            )
         logits = self.classifier(swam_outputs)
         loss = None
         if labels is not None:
