@@ -1,15 +1,19 @@
 #!/bin/bash
-export TASK_NAME=$1
-export CUDA_VISIBLE_DEVICES=$2
+export TOKENIZERS_PARALLELISM=false
+# export TASK_NAME=$1
+# export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
+export TASK_NAME=rte
+export CUDA_VISIBLE_DEVICES=6
 model_name_or_path=roberta-base
-# model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
-hub_model_id="self-weighted-${model_name_or_path/\//"-"}-${TASK_NAME}"
-output_dir="./fine-tune/self-weighted-$model_name_or_path/$TASK_NAME/"
-# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client self_weighted_glue.py \
-python self_weighted_glue.py \
-  --model_name_or_path $model_name_or_path \
+# model_name_or_path="JeremiahZ/roberta-base-rte"
+prefix="self-weighted-"
+hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
+output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
+# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
+python swam_glue.py \
   --task_name $TASK_NAME \
+  --model_name_or_path $model_name_or_path \
   --do_train \
   --do_eval \
   --max_seq_length 128 \
@@ -28,7 +32,9 @@ python self_weighted_glue.py \
   --push_to_hub \
   --load_best_model_at_end \
   --greater_is_better True \
-  --private
+  --private \
+  --model_class_name SelfWeightedRobertaForSequenceClassification \
+  --model_package_name modeling_self_weighted_roberta \
   # --overwrite_output_dir \
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete

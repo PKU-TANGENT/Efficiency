@@ -4,12 +4,12 @@ export TOKENIZERS_PARALLELISM=false
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=6
-model_name_or_path=roberta-base
-# model_name_or_path="JeremiahZ/roberta-base-rte"
-prefix="swam-"
-hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
-output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
+export CUDA_VISIBLE_DEVICES=7
+# model_name_or_path=roberta-base
+model_name_or_path="JeremiahZ/roberta-base-${TASK_NAME}"
+prefix="finetune-swam-"
+hub_model_id="${prefix}${model_name_or_path/\//"-"}"
+output_dir="./fine-tune/${prefix}${model_name_or_path/\//"-"}/"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
 python swam_glue.py \
   --task_name $TASK_NAME \
