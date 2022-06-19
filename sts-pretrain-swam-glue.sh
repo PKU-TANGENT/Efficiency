@@ -1,19 +1,22 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
-export TASK_NAME=$1
-# export TASK_NAME=rte
-# export CUDA_VISIBLE_DEVICES=6
-export CUDA_VISIBLE_DEVICES=$2
+# export TASK_NAME=$1
+export TASK_NAME=rte
+export CUDA_VISIBLE_DEVICES=6
+# export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 model_name_or_path=roberta-base
-prefix="swam-"
+local_model_name_or_path="/home/zhejian/emnlp/simcse/checkpoint/unsup-roberta-base-freeze-backbone-first-last"
+prefix="new-sts-pretrained-swam-"
+# prefix="swam-"
 # model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
+# --model_name_or_path $model_name_or_path \
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
 python swam_glue.py \
   --task_name $TASK_NAME \
-  --model_name_or_path $model_name_or_path \
+  --model_name_or_path $local_model_name_or_path \
   --do_train \
   --do_eval \
   --max_seq_length 128 \
