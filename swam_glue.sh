@@ -3,7 +3,7 @@ export TOKENIZERS_PARALLELISM=false
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=rte
+export TASK_NAME=mrpc
 export CUDA_VISIBLE_DEVICES=7
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
@@ -23,7 +23,7 @@ python swam_glue.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
-  --num_train_epochs 10 \
+  --num_train_epochs 5 \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \

@@ -15,7 +15,9 @@
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE."""
 # You can also adapt this script on your own text classification task. Pointers for this are left as comments.
-
+from ray.tune.schedulers import PopulationBasedTraining
+from ray.tune import CLIReporter
+import torch
 import logging
 import os
 import random
@@ -26,7 +28,8 @@ from huggingface_hub import update_repo_visibility
 import datasets
 import numpy as np
 from datasets import load_dataset, load_metric
-
+from ray import tune
+import importlib
 import transformers
 from transformers import (
     AutoConfig,
@@ -219,6 +222,18 @@ class ModelArguments:
         default=False,
         metadata={"help": "Whether to create private repo on huggingface."},
     )
+    custom_trainer: bool = field(
+        default=False,
+        metadata={"help": "Whether to use a custom trainer or not."},
+    )
+    trainer_class_name: str = field(
+        default="HypersearchTrainer",
+        metadata={"help": "Name of the trainer class to use."},
+    )
+    trainer_package_name: str = field(
+        default="hypersearch_trainer",
+        metadata={"help": "Name of the trainer package to use."},
+    )
 
 
 def main():
@@ -381,7 +396,7 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
     # Some models have set the order of the labels to use, so let's make sure we do use it.
-    label_to_id = None
+    # label_to_id = None
     def model_init():
         model = AutoModelForSequenceClassification.from_pretrained(
             model_args.model_name_or_path,
@@ -457,8 +472,8 @@ def main():
         result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
 
         # Map labels to IDs (not necessary for GLUE tasks)
-        if label_to_id is not None and "label" in examples:
-            result["label"] = [(label_to_id[l] if l != -1 else -1) for l in examples["label"]]
+        # if label_to_id is not None and "label" in examples:
+        #     result["label"] = [(label_to_id[l] if l != -1 else -1) for l in examples["label"]]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
@@ -528,32 +543,72 @@ def main():
         data_collator = None
     training_args.metric_for_best_model = task_to_metrics[data_args.task_name]
     # Initialize our Trainer
-    trainer = Trainer(
+    trainer_class = getattr(
+        importlib.import_module(f"..{model_args.trainer_package_name}", package="trainers.subpkg"),
+        model_args.trainer_class_name,
+        ) if model_args.custom_trainer else Trainer
+    trainer = trainer_class(
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
         eval_dataset=eval_dataset if training_args.do_eval else None,
         compute_metrics=compute_metrics,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=data_args.early_stopping_patience)],
         model_init=model_init,
     )
-    def my_hp_space_ray(trial):
-        from ray import tune
-        return {
-            "learning_rate":tune.grid_search([2e-5]),
-            "per_device_train_batch_size": tune.grid_search([ 16, 32]),
+    # def my_hp_space_ray(trial):
+    #     return {
+    #         "learning_rate":tune.uniform([1e-5, 3e-5]),
+    #         "per_device_train_batch_size": tune.uniform([16, 32]),
+    #         "num_train_epochs": tune.uniform([3, 10]),
+    #     }
+    reporter = CLIReporter(
+        parameter_columns={
+            # "weight_decay": "w_decay",
+            "learning_rate": "lr",
+            "per_device_train_batch_size": "train_bs/gpu",
+            # "num_train_epochs": "num_epochs",
+        },
+        metric_columns=["eval_"+task_to_metrics[data_args.task_name],"epoch", "training_iteration"],
+    )
+    tune_space = lambda _ : {
+            "learning_rate":tune.grid_search([1e-5,2e-5,3e-5]),
+            "per_device_train_batch_size": tune.grid_search([16, 32]),
+            # "num_train_epochs": tune.uniform(3, 10),
         }
-        # return {
-            # "learning_rate": tune.grid_search([1e-5, 2e-5, 3e-5]),
-            # "per_device_train_batch_size": tune.grid_search([ 16, 32]),
-        # }
+    # scheduler = PopulationBasedTraining(
+    #     time_attr="training_iteration",
+    #     perturbation_interval=1,
+    #     hyperparam_mutations={
+    #         "learning_rate":tune.uniform(1e-5,3e-5),
+    #         "per_device_train_batch_size": tune.grid_search([16, 32]),   
+    #     },
+    #     metric="eval_"+task_to_metrics[data_args.task_name],
+    # )
     def compute_objective(metrics):
         metric_key = task_to_metrics[data_args.task_name]
         metric_key = metric_key if metric_key in metrics else "eval_" + metric_key
         return metrics[metric_key]
+    gpus_per_trial = torch.cuda.device_count()
     if training_args.do_train:
-        best_run = trainer.hyperparameter_search(direction="maximize", hp_space=my_hp_space_ray, compute_objective=compute_objective)
+        best_run = trainer.hyperparameter_search(
+            hp_space=tune_space,
+            direction="maximize", 
+            backend="ray",
+            keep_checkpoints_num=1,
+            n_trials=1,
+            mode="max",
+            # checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
+            checkpoint_score_attr="training_iteration",
+            # scheduler=scheduler,
+            compute_objective=compute_objective,
+            resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
+            progress_reporter=reporter,
+            local_dir="./ray_results/",
+            name="tune_transformer_grid",
+            log_to_file=True,
+        )
+        print(best_run)
         for n, v in best_run.hyperparameters.items():
             setattr(trainer.args, n, v)    
     # Training
