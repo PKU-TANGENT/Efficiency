@@ -576,6 +576,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         model_init=model_init,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=data_args.early_stopping_patience)],
     )
     scheduler = PopulationBasedTraining(
         time_attr="training_iteration",
@@ -584,7 +585,7 @@ def main():
             "learning_rate":tune.uniform(1e-5,5e-5),
             "per_device_train_batch_size": [16, 32, 64],   
             "weight_decay": tune.uniform(0,0.3),
-            "model_head_lr": tune.loguniform(1e-5,1e-3),
+            "model_head_lr": tune.uniform(1e-5,5e-5),
         },
         metric="eval_"+task_to_metrics[data_args.task_name],
     )
@@ -599,12 +600,12 @@ def main():
         metric_columns=["eval_"+task_to_metrics[data_args.task_name],"epoch", "training_iteration"],
     )
     tune_space=lambda _ : {
-        "model_head_lr": tune.loguniform(1e-5,1e-3),
+        "model_head_lr": tune.uniform(1e-5,5e-5),
         "learning_rate":tune.choice([1e-5,2e-5,3e-5]),
         "per_device_train_batch_size": tune.choice([16, 32, 64]),
-        "num_train_epochs": tune.randint(3,10),
+        "num_train_epochs": tune.randint(5,10),
         "warmup_ratio": tune.uniform(0,0.1),
-        "weight_decay": tune.uniform(0,0.3),
+        "weight_decay": tune.randn(0.06,0.01),
     }
     def compute_objective(metrics):
         metric_key = task_to_metrics[data_args.task_name]
@@ -619,8 +620,8 @@ def main():
             keep_checkpoints_num=1,
             n_trials=10,
             mode="max",
-            # checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
-            checkpoint_score_attr="training_iteration",
+            checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
+            # checkpoint_score_attr="training_iteration",
             scheduler=scheduler,
             compute_objective=compute_objective,
             resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},

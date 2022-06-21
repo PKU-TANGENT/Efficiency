@@ -4,14 +4,14 @@ export TOKENIZERS_PARALLELISM=false
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 export TASK_NAME=qnli
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
-prefix="hypersearch-swam-"
+prefix="local-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
-# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
-python swam_glue_hyper_search.py \
+# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
+python swam_glue.py \
   --task_name $TASK_NAME \
   --model_name_or_path $model_name_or_path \
   --do_train \
@@ -23,19 +23,19 @@ python swam_glue_hyper_search.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
-  --num_train_epochs 10 \
+  --num_train_epochs 5 \
   --evaluation_strategy "steps" \
   --save_strategy "steps" \
   --save_total_limit 1 \
   --output_dir $output_dir \
-  --overwrite_output_dir \
+  --load_best_model_at_end \
   --greater_is_better True \
   --private \
-  --model_head_lr 2e-5 \
-  --eval_ratio 0.2 \
-  --early_stopping_patience 3 \
-  --load_best_model_at_end \
-  --disable_tqdm True \
+  --early_stopping_patience 10 \
   # --hub_model_id $hub_model_id \
+  # --overwrite_output_dir \
   # --push_to_hub \
-
+# find $output_dir -name *optimizer.pt -delete
+# find $output_dir -name *scheduler.pt -delete
+# find $output_dir -name *pytorch_model.bin -delete
+# rm -rf $output_dir/.git
