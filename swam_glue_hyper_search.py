@@ -48,7 +48,7 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
-
+from trainers.hypersearch_swam_trainer import HyperSWAMTraingArguments
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.20.0.dev0")
@@ -234,26 +234,23 @@ class ModelArguments:
         default="modeling_swam_roberta",
         metadata={"help": "Name of the model package to use."},
     )
-    model_head_lr: float = field(
-        default=2e-4,
-        metadata={"help": "Learning rate for the model head."},
-    )
+    # model_head_lr: float = field(
+    #     default=2e-4,
+    #     metadata={"help": "Learning rate for the model head."},
+    # )
     custom_trainer: bool = field(
-        default=False,
+        default=True,
         metadata={"help": "Whether to use a custom trainer or not."},
     )
     trainer_class_name: str = field(
-        default="SWAMTrainer",
+        default="HyperSWAMTrainer",
         metadata={"help": "Name of the trainer class to use."},
     )
     trainer_package_name: str = field(
-        default="swam_trainer",
+        default="hypersearch_swam_trainer",
         metadata={"help": "Name of the trainer package to use."},
     )
-    return_hidden_states: bool = field(
-        default=False,
-        metadata={"help": "Whether to return hidden states or not."},
-    )
+
 
 
 
@@ -261,8 +258,7 @@ def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
-
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, HyperSWAMTraingArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
@@ -459,7 +455,7 @@ def main():
         elif data_args.task_name is not None and not is_regression:
             model.config.label2id = {l: i for i, l in enumerate(label_list)}
             model.config.id2label = {id: label for label, id in config.label2id.items()}
-            return model
+        return model
 
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:
@@ -581,19 +577,32 @@ def main():
         data_collator=data_collator,
         model_init=model_init,
     )
+    scheduler = PopulationBasedTraining(
+        time_attr="training_iteration",
+        perturbation_interval=1,
+        hyperparam_mutations={
+            "learning_rate":tune.uniform(1e-5,5e-5),
+            "per_device_train_batch_size": [16, 32, 64],   
+            "weight_decay": tune.uniform(0,0.3),
+            "model_head_lr": tune.loguniform(1e-5,1e-3),
+        },
+        metric="eval_"+task_to_metrics[data_args.task_name],
+    )
     reporter = CLIReporter(
         parameter_columns={
             "weight_decay": "w_decay",
             "learning_rate": "lr",
-            "per_device_train_batch_size": "train_bs/gpu",
-            "num_train_epochs": "num_epochs",
+            "per_device_train_batch_size": "bs",
+            "num_train_epochs": "n_epochs",
+            "model_head_lr": "h_lr",
         },
         metric_columns=["eval_"+task_to_metrics[data_args.task_name],"epoch", "training_iteration"],
     )
     tune_space=lambda _ : {
-        "learning_rate":tune.grid_search([1e-5,2e-5,3e-5]),
-        "per_device_train_batch_size": tune.grid_search([16, 32]),
-        "num_train_epochs": tune.grid_search([3,5,10]),
+        "model_head_lr": tune.loguniform(1e-5,1e-3),
+        "learning_rate":tune.choice([1e-5,2e-5,3e-5]),
+        "per_device_train_batch_size": tune.choice([16, 32, 64]),
+        "num_train_epochs": tune.randint(3,10),
         "warmup_ratio": tune.uniform(0,0.1),
         "weight_decay": tune.uniform(0,0.3),
     }
@@ -608,16 +617,16 @@ def main():
             direction="maximize", 
             backend="ray",
             keep_checkpoints_num=1,
-            n_trials=3,
+            n_trials=10,
             mode="max",
             # checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
             checkpoint_score_attr="training_iteration",
-            # scheduler=scheduler,
+            scheduler=scheduler,
             compute_objective=compute_objective,
             resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
             progress_reporter=reporter,
-            local_dir="./ray_results/swam_"+data_args.task_name,
-            name="tune_swam_"+data_args.task_name,
+            local_dir="./ray_results/pbt_swam_"+data_args.task_name,
+            name="pbt_swam_"+data_args.task_name,
             log_to_file=True,
         )
         print(best_run)

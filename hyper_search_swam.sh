@@ -3,15 +3,15 @@ export TOKENIZERS_PARALLELISM=false
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=wnli
-export CUDA_VISIBLE_DEVICES=3
+export TASK_NAME=cola
+export CUDA_VISIBLE_DEVICES=0,3
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="hypersearch-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
-python run_glue_hyper_search.py \
+python swam_glue_hyper_search.py \
   --task_name $TASK_NAME \
   --model_name_or_path $model_name_or_path \
   --do_train \
@@ -24,14 +24,16 @@ python run_glue_hyper_search.py \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
   --num_train_epochs 10 \
-  --evaluation_strategy "epoch" \
+  --evaluation_strategy "steps" \
   --save_strategy "epoch" \
   --save_total_limit 1 \
   --output_dir $output_dir \
   --overwrite_output_dir \
-  --load_best_model_at_end \
   --greater_is_better True \
   --private \
+  --model_head_lr 2e-4 \
+  --eval_ratio 0.33 \
+  # --load_best_model_at_end \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
 
