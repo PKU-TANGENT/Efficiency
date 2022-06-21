@@ -3,7 +3,7 @@ export TOKENIZERS_PARALLELISM=false
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=mrpc
+export TASK_NAME=cola
 export CUDA_VISIBLE_DEVICES=3
 model_name_or_path=bert-base-uncased
 # model_name_or_path=princeton-nlp/unsup-simcse-roberta-base
@@ -16,11 +16,9 @@ python run_glue.py \
   --do_train \
   --do_eval \
   --max_seq_length 128 \
-  --per_device_train_batch_size 16 \
+  --per_device_train_batch_size 32 \
   --per_device_eval_batch_size 8 \
   --gradient_accumulation_steps 1 \
-  --warmup_ratio 0.06 \
-  --weight_decay 0.1 \
   --learning_rate 2e-5 \
   --num_train_epochs 3 \
   --evaluation_strategy "epoch" \
@@ -32,8 +30,8 @@ python run_glue.py \
   --load_best_model_at_end \
   --greater_is_better True \
   --early_stopping_patience 10 \
-  # --private \
   # --overwrite_output_dir \
+  # --private \
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete
