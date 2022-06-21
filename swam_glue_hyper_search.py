@@ -17,6 +17,7 @@
 # You can also adapt this script on your own text classification task. Pointers for this are left as comments.
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune import CLIReporter
+from ray import tune
 import torch
 import logging
 import os
@@ -28,7 +29,6 @@ from huggingface_hub import update_repo_visibility
 import datasets
 import numpy as np
 from datasets import load_dataset, load_metric
-from ray import tune
 import importlib
 import transformers
 from transformers import (
@@ -222,18 +222,39 @@ class ModelArguments:
         default=False,
         metadata={"help": "Whether to create private repo on huggingface."},
     )
+    custom_model: bool = field(
+        default=True,
+        metadata={"help": "Whether to use a custom model or not."},
+    )
+    model_class_name: str = field(
+        default="SWAMRobertaForSequenceClassification",
+        metadata={"help": "Name of the model class to use."},
+    )
+    model_package_name: str = field(
+        default="modeling_swam_roberta",
+        metadata={"help": "Name of the model package to use."},
+    )
+    model_head_lr: float = field(
+        default=2e-4,
+        metadata={"help": "Learning rate for the model head."},
+    )
     custom_trainer: bool = field(
         default=False,
         metadata={"help": "Whether to use a custom trainer or not."},
     )
     trainer_class_name: str = field(
-        default="HypersearchTrainer",
+        default="SWAMTrainer",
         metadata={"help": "Name of the trainer class to use."},
     )
     trainer_package_name: str = field(
-        default="hypersearch_trainer",
+        default="swam_trainer",
         metadata={"help": "Name of the trainer package to use."},
     )
+    return_hidden_states: bool = field(
+        default=False,
+        metadata={"help": "Whether to return hidden states or not."},
+    )
+
 
 
 def main():
@@ -375,6 +396,7 @@ def main():
             label_list = raw_datasets["train"].unique("label")
             label_list.sort()  # Let's sort it for determinism
             num_labels = len(label_list)
+    model_args.is_regression = is_regression
 
     # Load pretrained model and tokenizer
     #
@@ -395,10 +417,13 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    # Some models have set the order of the labels to use, so let's make sure we do use it.
-    # label_to_id = None
+    model_class = getattr(
+        importlib.import_module(f"..{model_args.model_package_name}", package="models.subpkg"), 
+        model_args.model_class_name
+        ) if model_args.custom_model else AutoModelForSequenceClassification
     def model_init():
-        model = AutoModelForSequenceClassification.from_pretrained(
+        model_init_kwargs = {} if not model_args.custom_model else {"model_args": model_args}
+        model = model_class.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
             config=config,
@@ -406,7 +431,9 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
             ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
+            **model_init_kwargs,
         )
+    # Some models have set the order of the labels to use, so let's make sure we do use it.
         label_to_id = None
         if (
             model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
@@ -432,7 +459,7 @@ def main():
         elif data_args.task_name is not None and not is_regression:
             model.config.label2id = {l: i for i, l in enumerate(label_list)}
             model.config.id2label = {id: label for label, id in config.label2id.items()}
-        return model
+            return model
 
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:
@@ -454,8 +481,6 @@ def main():
     else:
         # We will pad later, dynamically at batch creation, to the max sequence length in each batch
         padding = False
-
-
 
     if data_args.max_seq_length > tokenizer.model_max_length:
         logger.warning(
@@ -556,37 +581,22 @@ def main():
         data_collator=data_collator,
         model_init=model_init,
     )
-    # def my_hp_space_ray(trial):
-    #     return {
-    #         "learning_rate":tune.uniform([1e-5, 3e-5]),
-    #         "per_device_train_batch_size": tune.uniform([16, 32]),
-    #         "num_train_epochs": tune.uniform([3, 10]),
-    #     }
     reporter = CLIReporter(
         parameter_columns={
-            # "weight_decay": "w_decay",
+            "weight_decay": "w_decay",
             "learning_rate": "lr",
             "per_device_train_batch_size": "train_bs/gpu",
-            # "num_train_epochs": "num_epochs",
+            "num_train_epochs": "num_epochs",
         },
         metric_columns=["eval_"+task_to_metrics[data_args.task_name],"epoch", "training_iteration"],
     )
-    tune_space = lambda _ : {
-            "learning_rate":tune.grid_search([1e-5,2e-5,3e-5]),
-            "per_device_train_batch_size": tune.grid_search([16, 32]),
-            "num_train_epochs": tune.grid_search([3,5,10]),
-            "warmup_ratio": tune.uniform(0,0.1),
-            "weight_decay": tune.uniform(0,0.3),
-        }
-    # scheduler = PopulationBasedTraining(
-    #     time_attr="training_iteration",
-    #     perturbation_interval=1,
-    #     hyperparam_mutations={
-    #         "learning_rate":tune.uniform(1e-5,3e-5),
-    #         "per_device_train_batch_size": tune.grid_search([16, 32]),   
-    #     },
-    #     metric="eval_"+task_to_metrics[data_args.task_name],
-    # )
+    tune_space=lambda _ : {
+        "learning_rate":tune.grid_search([1e-5,2e-5,3e-5]),
+        "per_device_train_batch_size": tune.grid_search([16, 32]),
+        "num_train_epochs": tune.grid_search([3,5,10]),
+        "warmup_ratio": tune.uniform(0,0.1),
+        "weight_decay": tune.uniform(0,0.3),
+    }
     def compute_objective(metrics):
         metric_key = task_to_metrics[data_args.task_name]
         metric_key = metric_key if metric_key in metrics else "eval_" + metric_key
@@ -606,14 +616,12 @@ def main():
             compute_objective=compute_objective,
             resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
             progress_reporter=reporter,
-            local_dir="./ray_results/",
-            name="tune_transformer_grid",
+            local_dir="./ray_results/swam_"+data_args.task_name,
+            name="tune_swam_"+data_args.task_name,
             log_to_file=True,
         )
         print(best_run)
         return
-        for n, v in best_run.hyperparameters.items():
-            setattr(trainer.args, n, v)    
     # Training
     if training_args.do_train:
         checkpoint = None

@@ -7,7 +7,7 @@ export TASK_NAME=wnli
 export CUDA_VISIBLE_DEVICES=3
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
-prefix="hypersearch-"
+prefix="hypersearch-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
