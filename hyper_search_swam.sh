@@ -3,7 +3,7 @@ export TOKENIZERS_PARALLELISM=false
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=qnli
+export TASK_NAME=rte
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
@@ -32,8 +32,8 @@ python swam_glue_hyper_search.py \
   --greater_is_better True \
   --private \
   --model_head_lr 2e-5 \
-  --eval_ratio 0.2 \
-  --early_stopping_patience 3 \
+  --eval_ratio 0.1 \
+  --early_stopping_patience 10 \
   --load_best_model_at_end \
   --disable_tqdm True \
   # --hub_model_id $hub_model_id \
