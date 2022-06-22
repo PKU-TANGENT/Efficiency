@@ -219,6 +219,10 @@ class ModelArguments:
         default=False,
         metadata={"help": "Whether to create private repo on huggingface."},
     )
+    freeze_backbone: bool = field(
+        default=False,
+        metadata={"help":" Whether to freeze PLM backbone."}
+    )
 
 
 def main():
@@ -389,6 +393,11 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
     )
+    if model_args.freeze_backbone:
+        model_prefix = model.config._name_or_path.split("-")[0]
+        backbone_model = eval("model."+model_prefix)
+        for params in backbone_model.parameters():
+            params.requires_grad = False
 
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:

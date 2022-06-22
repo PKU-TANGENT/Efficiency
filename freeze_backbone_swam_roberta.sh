@@ -1,14 +1,14 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
-# export TASK_NAME=$1
-# export CUDA_VISIBLE_DEVICES=$2
-# model_name_or_path=$3
 export WANDB_PROJECT=roberta
-export TASK_NAME=cola
-export CUDA_VISIBLE_DEVICES=0
+export TASK_NAME=$1
+export CUDA_VISIBLE_DEVICES=$2
+# model_name_or_path=$3
+# export TASK_NAME=mrpc
+# export CUDA_VISIBLE_DEVICES=7
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
-prefix="swam-"
+prefix="swam-freeze-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
@@ -24,17 +24,18 @@ python swam_glue.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
-  --num_train_epochs 5 \
+  --num_train_epochs 10 \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \
   --output_dir $output_dir \
-  --hub_model_id $hub_model_id \
-  --push_to_hub \
   --load_best_model_at_end \
   --greater_is_better True \
   --private \
   --early_stopping_patience 10 \
+  --freeze_backbone \
+#   --hub_model_id $hub_model_id \
+#   --push_to_hub \
   # --overwrite_output_dir \
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete

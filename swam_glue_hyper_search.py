@@ -250,6 +250,14 @@ class ModelArguments:
         default="hypersearch_swam_trainer",
         metadata={"help": "Name of the trainer package to use."},
     )
+    freeze_backbone: bool = field(
+        default=False,
+        metadata={"help": "Whether to freeze PLM backbone."}
+    )
+    add_mask: bool = field(
+        default=False,
+        metadata={"help": "Whether to force add [MASK] to sentence."}
+    )
 
 
 

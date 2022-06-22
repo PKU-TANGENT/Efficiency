@@ -90,5 +90,5 @@ class PoolerRobertaForSequenceClassification(RobertaPreTrainedModel):
             loss=loss,
             logits=logits,
             hidden_states=outputs.hidden_states if output_hidden_states else None,
-            attentions=weights if output_attentions else None,
+            attentions=outputs.attentions if output_attentions else None,
         )
