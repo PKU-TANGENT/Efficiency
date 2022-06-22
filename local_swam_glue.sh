@@ -1,16 +1,17 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
+export WANDB_PROJECT=roberta
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=qnli
-export CUDA_VISIBLE_DEVICES=0
-model_name_or_path=roberta-base
+export TASK_NAME=mnli
+export CUDA_VISIBLE_DEVICES=7
+model_name_or_path=roberta
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="hyper-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 # output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
-output_dir="./ray_results/pbt_swam_qnli/pbt_swam_qnli/_objective_44d14_00000_0_learning_rate=0.0000,model_head_lr=0.0000,num_train_epochs=7,per_device_train_batch_size=64,warmup_ratio=_2022-06-21_17-41-04/checkpoint_009822/checkpoint-9822"
+output_dir="ray_results/pbt_swam_mnli/pbt_swam_mnli/_objective_204cf_00009_9_learning_rate=0.0000,model_head_lr=0.0000,num_train_epochs=8,per_device_train_batch_size=64,warmup_ratio=_2022-06-21_23-58-24/checkpoint_036816/checkpoint-36816"
 local_eval_dir="local-${hub_model_id}"
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
 python swam_glue.py \

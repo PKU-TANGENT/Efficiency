@@ -1,10 +1,11 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
+export WANDB_DISABLED="true"
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export TASK_NAME=stsb
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="hypersearch-swam-"
@@ -33,7 +34,7 @@ python swam_glue_hyper_search.py \
   --private \
   --model_head_lr 2e-5 \
   --eval_ratio 0.1 \
-  --early_stopping_patience 10 \
+  --early_stopping_patience 20 \
   --load_best_model_at_end \
   --disable_tqdm True \
   # --hub_model_id $hub_model_id \
