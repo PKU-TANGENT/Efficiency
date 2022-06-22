@@ -585,7 +585,7 @@ def main():
             "learning_rate":tune.uniform(1e-5,5e-5),
             "per_device_train_batch_size": [16, 32, 64],   
             "weight_decay": tune.uniform(0,0.3),
-            "model_head_lr": tune.loguniform(5e-5,5e-4),
+            "model_head_lr": tune.uniform(1e-5,5e-5),
         },
         metric="eval_"+task_to_metrics[data_args.task_name],
     )
@@ -600,18 +600,16 @@ def main():
         metric_columns=["eval_"+task_to_metrics[data_args.task_name],"epoch", "training_iteration"],
     )
     tune_space=lambda _ : {
-        # "model_head_lr": tune.uniform(1e-5,5e-5),
-        # "learning_rate":tune.choice([1e-5,2e-5,3e-5]),
-        # "per_device_train_batch_size": tune.choice([16, 32, 64]),
+        "model_head_lr": tune.uniform(5e-5,5e-4),
+        "learning_rate":tune.choice([2e-5,3e-5,5e-5]),
+        "per_device_train_batch_size": tune.choice([16, 32, 64]),
         # "num_train_epochs": tune.randint(5,10),
-        # "warmup_ratio": tune.uniform(0,0.1),
-        # "weight_decay": tune.randn(0.06,0.01),
-        "model_head_lr": 2e-4,
-        "learning_rate": 2e-5,
+        # "model_head_lr": 2e-4,
+        # "learning_rate": 2e-5,
         "per_device_train_batch_size": 16,
-        "num_train_epochs": 10,
-        "warmup_ratio": tune.randn(0.06,0.01),
-        "weight_decay": tune.randn(0.1,0.02),
+        "num_train_epochs": tune.randint(14,30),
+        "warmup_ratio": tune.uniform(0,0.06),
+        "weight_decay": tune.uniform(0,0.3),
     }
     def compute_objective(metrics):
         metric_key = task_to_metrics[data_args.task_name]
@@ -624,7 +622,7 @@ def main():
             direction="maximize", 
             backend="ray",
             keep_checkpoints_num=1,
-            n_trials=10,
+            n_trials=16,
             mode="max",
             checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
             # checkpoint_score_attr="training_iteration",

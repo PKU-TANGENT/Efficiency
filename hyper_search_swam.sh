@@ -33,7 +33,7 @@ python swam_glue_hyper_search.py \
   --greater_is_better True \
   --private \
   --model_head_lr 2e-5 \
-  --eval_ratio 0.1 \
+  --eval_ratio 0.33 \
   --early_stopping_patience 20 \
   --load_best_model_at_end \
   --disable_tqdm True \
