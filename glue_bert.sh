@@ -1,5 +1,6 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
+export WANDB_PROJECT=bert-base-uncased
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
