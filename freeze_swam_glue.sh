@@ -1,15 +1,18 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
-# export TASK_NAME=$1
-# export CUDA_VISIBLE_DEVICES=$2
-# model_name_or_path=$3
-export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=6
-model_name_or_path=roberta-base
-# model_name_or_path="JeremiahZ/roberta-base-rte"
-prefix="self-weighted-"
+export TASK_NAME=$1
+export CUDA_VISIBLE_DEVICES=$2
+model_name_or_path=$3
+IFS="-" read -r -a name_parser <<< "$model_name_or_path"
+model_architecture="${name_parser[0]}"
+# export TASK_NAME=mrpc
+# export CUDA_VISIBLE_DEVICES=3
+# model_name_or_path=roberta-base
+prefix="swam-freeze-"
+# suffix="-${}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
-output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
+output_dir="./fine-tune/${prefix}${model_name_or_path}/${TASK_NAME}/"
+export WANDB_PROJECT=$model_name_or_path
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client swam_glue.py \
 python swam_glue.py \
   --task_name $TASK_NAME \
@@ -28,14 +31,16 @@ python swam_glue.py \
   --save_strategy "epoch" \
   --save_total_limit 1 \
   --output_dir $output_dir \
-  --hub_model_id $hub_model_id \
-  --push_to_hub \
   --load_best_model_at_end \
   --greater_is_better True \
   --private \
-  --model_class_name SelfWeightedRobertaForSequenceClassification \
-  --model_package_name modeling_self_weighted_roberta \
-  # --overwrite_output_dir \
+  --early_stopping_patience 10 \
+  --freeze_backbone \
+  --model_class_name "SWAM${model_architecture^}ForSequenceClassification" \
+  --model_package_name "modeling_swam_${model_architecture}" \
+#   --hub_model_id $hub_model_id \
+#   --push_to_hub \
+# --overwrite_output_dir \
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete

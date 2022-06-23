@@ -164,7 +164,7 @@ class ModelArguments:
         metadata={"help": "Name of the model package to use."},
     )
     model_head_lr: float = field(
-        default=2e-4,
+        default=2e-5,
         metadata={"help": "Learning rate for the model head."},
     )
     custom_trainer: bool = field(

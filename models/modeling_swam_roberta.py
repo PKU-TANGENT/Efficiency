@@ -26,9 +26,6 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         self.swam = SWAM(config)
         self.classifier = SWAMRobertaClassificationHead(config)
         self.post_init()
-        if self.model_args.freeze_backbone:
-            for params in self.roberta.parameters():
-                params.requires_grad=False
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
