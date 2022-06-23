@@ -31,7 +31,8 @@ python run_glue.py \
   --output_dir $output_dir \
   --load_best_model_at_end \
   --greater_is_better True \
-  --early_stopping_patience 3 \
+  --early_stopping_patience 5 \
+  --freeze_backbone \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
   # --private \

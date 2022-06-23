@@ -1,17 +1,22 @@
 import torch
 import torch.nn as nn
-import importlib
 from transformers.models.roberta.modeling_roberta import RobertaPreTrainedModel, RobertaModel, RobertaClassificationHead
 from typing import List, Optional, Tuple, Union
-from .swam import SWAM
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
 class PoolerRobertaClassificationHead(RobertaClassificationHead):
     """Head for sentence-level classification tasks."""
     def __init__(self, config, pooler_type="cls"):
         super().__init__(config)
+        self.pooler_type = pooler_type
 
-    def forward(self, features, **kwargs):
+    def forward(self, features, attention_mask=None):
+        if self.pooler_type == "cls":
+            features = features[:, 0]
+        elif self.pooler_type == "avg" and attention_mask is not None:
+            features = (features * attention_mask).sum(axis=-2) / attention_mask.sum(axis=-2)
+        else:
+            raise NotImplementedError
         x = self.dropout(features)
         x = self.dense(x)
         x = torch.tanh(x)
@@ -27,7 +32,7 @@ class PoolerRobertaForSequenceClassification(RobertaPreTrainedModel):
 
         self.model_args = kwargs.pop('model_args', None)
         self.roberta = RobertaModel(config, add_pooling_layer=False)
-        self.classifier = PoolerRobertaClassificationHead(config)
+        self.classifier = PoolerRobertaClassificationHead(config, pooler_type=self.model_args.pooler_type)
         self.post_init()
     def forward(
         self,
@@ -41,7 +46,6 @@ class PoolerRobertaForSequenceClassification(RobertaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        force_swam_weight: Optional[torch.FloatTensor] = None,
     ):
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -57,7 +61,8 @@ class PoolerRobertaForSequenceClassification(RobertaPreTrainedModel):
             return_dict=return_dict,
         )
         last_hidden_state = outputs.last_hidden_state
-        logits = self.classifier(last_hidden_state)
+        to_pass_attention = None if self.classifier.pooler_type == "cls" else attention_mask
+        logits = self.classifier(last_hidden_state, to_pass_attention)
         loss = None
         if labels is not None:
             if self.config.problem_type is None:
