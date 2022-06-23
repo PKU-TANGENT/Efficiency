@@ -1,12 +1,12 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
-export WANDB_PROJECT=roberta-base
 export TASK_NAME=$1
 export CUDA_VISIBLE_DEVICES=$2
-# model_name_or_path=$3
+model_name_or_path=$3
+export WANDB_PROJECT=$model_name_or_path
 # export TASK_NAME=mrpc
 # export CUDA_VISIBLE_DEVICES=7
-model_name_or_path=roberta-base
+# model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="swam-freeze-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
@@ -36,7 +36,7 @@ python swam_glue.py \
   --freeze_backbone \
 #   --hub_model_id $hub_model_id \
 #   --push_to_hub \
-  # --overwrite_output_dir \
+# --overwrite_output_dir \
 # find $output_dir -name *optimizer.pt -delete
 # find $output_dir -name *scheduler.pt -delete
 # find $output_dir -name *pytorch_model.bin -delete

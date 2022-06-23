@@ -26,7 +26,7 @@ from huggingface_hub import update_repo_visibility
 import datasets
 import numpy as np
 from datasets import load_dataset, load_metric
-
+import importlib
 import transformers
 from transformers import (
     AutoConfig,
@@ -223,6 +223,18 @@ class ModelArguments:
         default=False,
         metadata={"help":" Whether to freeze PLM backbone."}
     )
+    model_class_name: str = field(
+        default="PoolerRobertaForSequenceClassification",
+        metadata={"help": "Name of the model class to use."},
+    )
+    model_package_name: str = field(
+        default="modeling_roberta",
+        metadata={"help": "Name of the model package to use."},
+    )
+    pooler_type: str = field(
+        default="cls",
+        metadata={"help": "Which kind of pooler to use."}
+    )
 
 
 def main():
@@ -384,7 +396,12 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    model = AutoModelForSequenceClassification.from_pretrained(
+    model_class = getattr(
+        importlib.import_module(f"..{model_args.model_package_name}", package="models.subpkg"), 
+        model_args.model_class_name
+        )
+    model_init_kwargs = {"model_args": model_args}
+    model = model_class.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
@@ -392,6 +409,7 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
+        **model_init_kwargs,
     )
     if model_args.freeze_backbone:
         model_prefix = model.config._name_or_path.split("-")[0]

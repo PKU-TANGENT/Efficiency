@@ -14,7 +14,7 @@ class PoolerRobertaClassificationHead(RobertaClassificationHead):
         if self.pooler_type == "cls":
             features = features[:, 0]
         elif self.pooler_type == "avg" and attention_mask is not None:
-            features = (features * attention_mask).sum(axis=-2) / attention_mask.sum(axis=-2)
+            features = (features * attention_mask.unsqueeze(-1)).sum(axis=-2) / attention_mask.sum(axis=-1).unsqueeze(-1)
         else:
             raise NotImplementedError
         x = self.dropout(features)
@@ -87,7 +87,6 @@ class PoolerRobertaForSequenceClassification(RobertaPreTrainedModel):
                 loss = loss_fct(logits, labels)
 
         if not return_dict:
-            raise ValueError("please implement the following block")
             output = (logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
 
