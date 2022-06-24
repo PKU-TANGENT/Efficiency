@@ -26,7 +26,7 @@ python swam_glue.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
-  --num_train_epochs 10 \
+  --num_train_epochs 5 \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \
@@ -38,10 +38,6 @@ python swam_glue.py \
   --freeze_backbone \
   --model_class_name "SWAM${model_architecture^}ForSequenceClassification" \
   --model_package_name "modeling_swam_${model_architecture}" \
-#   --hub_model_id $hub_model_id \
-#   --push_to_hub \
-# --overwrite_output_dir \
-# find $output_dir -name *optimizer.pt -delete
-# find $output_dir -name *scheduler.pt -delete
-# find $output_dir -name *pytorch_model.bin -delete
-# rm -rf $output_dir/.git
+  # --hub_model_id $hub_model_id \
+  # --push_to_hub \
+  # --overwrite_output_dir \

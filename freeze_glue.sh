@@ -44,7 +44,3 @@ python run_glue.py \
   # --push_to_hub \
   # --private \
   # --overwrite_output_dir \
-# find $output_dir -name *optimizer.pt -delete
-# find $output_dir -name *scheduler.pt -delete
-# find $output_dir -name *pytorch_model.bin -delete
-# rm -rf $output_dir/.git
