@@ -1,16 +1,19 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
 export WANDB_DISABLED="true"
+export TASK_NAME=rte
+export CUDA_VISIBLE_DEVICES=4,5,6,7
+model_name_or_path=roberta-base
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
-export TASK_NAME=stsb
-export CUDA_VISIBLE_DEVICES=4,5,6,7
-model_name_or_path=roberta-base
+IFS="-" read -r -a name_parser <<< "$model_name_or_path"
+model_architecture="${name_parser[0]}"
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="hypersearch-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
-output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
+output_dir="./fine-tune/${prefix}${model_name_or_path}/${TASK_NAME}/"
+export WANDB_PROJECT=$model_name_or_path
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
 python swam_glue_hyper_search.py \
   --task_name $TASK_NAME \
@@ -37,6 +40,8 @@ python swam_glue_hyper_search.py \
   --early_stopping_patience 20 \
   --load_best_model_at_end \
   --disable_tqdm True \
+  --model_class_name "SWAM${model_architecture^}ForSequenceClassification" \
+  --model_package_name "modeling_swam_${model_architecture}" \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
 
