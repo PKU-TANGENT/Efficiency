@@ -40,29 +40,41 @@ class SWAMTrainer(Trainer):
         if self.optimizer is None:
             decay_parameters = get_parameter_names(opt_model, [nn.LayerNorm])
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
-            tmp_criterion = lambda x: "classifier" in x or "swam" in x
+            decay_criterion = lambda n: n in decay_parameters
+            head_criterion = lambda n: "classifier" in n or "swam" in n
+            prompt_criterion = lambda n: "prompt" in n
+            head_decay = [p for n, p in opt_model.named_parameters() if head_criterion(n) and decay_criterion(n)]
+            head_not_decay = [p for n, p in opt_model.named_parameters() if head_criterion(n) and not decay_criterion(n)]
+            prompt = [p for n, p in opt_model.named_parameters() if prompt_criterion(n)]
+            other_decay = [p for n,p in opt_model.named_parameters() if not head_criterion(n) and not prompt_criterion(n) and decay_criterion(n)]
+            other_not_decay = [p for n,p in opt_model.named_parameters() if not head_criterion(n) and not prompt_criterion(n) and not decay_criterion(n)]
             optimizer_grouped_parameters = [
                 {
-                    "params": [p for n, p in opt_model.named_parameters() if n in decay_parameters and not tmp_criterion(n)],
+                    "params": other_decay,
                     "weight_decay": self.args.weight_decay,
                     "lr": self.args.learning_rate
                 },
                 {
-                    "params": [p for n, p in opt_model.named_parameters() if n in decay_parameters and tmp_criterion(n)],
-                    "weight_decay": self.args.weight_decay,
-                    "lr": self.model.model_args.model_head_lr
-                },
-                {
-                    "params": [p for n, p in opt_model.named_parameters() if n not in decay_parameters and not tmp_criterion(n)],
+                    "params": other_not_decay,
                     "weight_decay": 0.0,
                     "lr": self.args.learning_rate
                 },
                 {
-                    "params": [p for n, p in opt_model.named_parameters() if n not in decay_parameters and tmp_criterion(n)],
-                    "weight_decay": 0.0,
+                    "params": head_decay,
+                    "weight_decay": self.args.weight_decay,
                     "lr": self.model.model_args.model_head_lr
                 },
 
+                {
+                    "params": head_not_decay,
+                    "weight_decay": 0.0,
+                    "lr": self.model.model_args.model_head_lr
+                },
+                {
+                    "params": prompt,
+                    "weight_decay": self.args.weight_decay,
+                    "lr": self.model.model_args.prompt_lr
+                },
             ]
 
             optimizer_cls, optimizer_kwargs = SWAMTrainer.get_optimizer_cls_and_kwargs(self.args)

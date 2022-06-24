@@ -2,7 +2,7 @@
 export TOKENIZERS_PARALLELISM=false
 export WANDB_DISABLED="true"
 export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,4,6
 model_name_or_path=roberta-base
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2

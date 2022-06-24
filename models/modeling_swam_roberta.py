@@ -21,7 +21,22 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
+        
         self.model_args = kwargs.pop('model_args', None) 
+        if self.model_args is not None and self.model_args.add_prompt:
+            self.soft_prompt = nn.Embedding(self.model_args.prompt_length, config.hidden_size)
+            self.register_buffer(
+                "prompt_range",
+                torch.arange(0,self.model_args.prompt_length, dtype=torch.long).unsqueeze(0),
+                persistent=False,
+            )
+            self.register_buffer(
+                "prompt_attention_mask",
+                torch.ones(1,self.model_args.prompt_length,dtype=torch.long),
+                persistent=False
+            )
+            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
         self.roberta = RobertaModel(config, add_pooling_layer=False)
         self.swam = SWAM(config)
         self.classifier = SWAMRobertaClassificationHead(config)
@@ -41,6 +56,29 @@ class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
         force_swam_weight: Optional[torch.FloatTensor] = None,
     ):
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        device = input_ids.device
+        if self.model_args.add_prompt:
+            batch_size = input_ids.size(0)
+            batch_prompt_range = self.prompt_range.expand(batch_size,-1)
+            soft_prompt = self.soft_prompt(batch_prompt_range)
+            soft_prompt = self.dropout(soft_prompt)
+            attention_mask = torch.concat(
+                [
+                    self.prompt_attention_mask.expand(batch_size, -1),
+                    attention_mask
+                ],
+                dim=-1
+            )
+            new_inputs_embeds = self.roberta.embeddings.word_embeddings(input_ids)
+            inputs_embeds = torch.concat(
+                [
+                    soft_prompt,
+                    new_inputs_embeds
+                ],
+                dim=-2
+            )
+            input_ids = None
+
 
         outputs = self.roberta(
             input_ids,

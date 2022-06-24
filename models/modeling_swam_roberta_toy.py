@@ -1,13 +1,12 @@
 import torch
 import torch.nn as nn
 import importlib
-from transformers.models.bert.modeling_bert import BertPreTrainedModel, BertModel
-from transformers.models.roberta.modeling_roberta import RobertaClassificationHead
+from transformers.models.roberta.modeling_roberta import RobertaPreTrainedModel, RobertaModel, RobertaClassificationHead
 from typing import List, Optional, Tuple, Union
 from .swam import SWAM
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
-class SWAMBertClassificationHead(RobertaClassificationHead):
+class SWAMRobertaClassificationHead(RobertaClassificationHead):
     """Head for sentence-level classification tasks."""
     def forward(self, features, **kwargs):
         x = self.dropout(features)
@@ -16,35 +15,31 @@ class SWAMBertClassificationHead(RobertaClassificationHead):
         x = self.dropout(x)
         x = self.out_proj(x)
         return x
-class SWAMBertForSequenceClassification(BertPreTrainedModel):
+class SWAMRobertaForSequenceClassification(RobertaPreTrainedModel):
+    _keys_to_ignore_on_load_missing = [r"position_ids"]
     def __init__(self, config, *args, **kwargs):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
+        self.model_args = kwargs.pop('model_args', None) 
+        self.prompt_length = kwargs.pop("prompt_length")
 
-        self.model_args = kwargs.pop('model_args', None)
-        if self.model_args is not None and self.model_args.add_prompt:
-            self.soft_prompt = nn.Embedding(self.model_args.prompt_length, config.hidden_size)
-            self.register_buffer(
-                "prompt_range",
-                torch.arange(0,self.model_args.prompt_length, dtype=torch.long).unsqueeze(0),
-                persistent=False,
-            )
-            self.register_buffer(
-                "prompt_attention_mask",
-                torch.ones(1,self.model_args.prompt_length,dtype=torch.long),
-                persistent=False
-            )
-            self.register_buffer(
-                "prompt_token_type_ids",
-                torch.zeros(1, self.model_args.prompt_length,dtype=torch.long),
-                persistent=False
-            )
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        
-        self.bert = BertModel(config, add_pooling_layer=False)
+        self.soft_prompt = nn.Embedding(self.prompt_length, config.hidden_size)
+        self.register_buffer(
+            "prompt_range",
+            torch.arange(0,self.prompt_length, dtype=torch.long).unsqueeze(0),
+            persistent=False,
+        )
+        self.register_buffer(
+            "prompt_attention_mask",
+            torch.ones(1,self.prompt_length,dtype=torch.long),
+            persistent=False
+        )
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+        self.roberta = RobertaModel(config, add_pooling_layer=False)
         self.swam = SWAM(config)
-        self.classifier = SWAMBertClassificationHead(config)
+        self.classifier = SWAMRobertaClassificationHead(config)
         self.post_init()
     def forward(
         self,
@@ -62,37 +57,29 @@ class SWAMBertForSequenceClassification(BertPreTrainedModel):
     ):
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
         device = input_ids.device
-        if self.model_args.add_prompt:
-            batch_size = input_ids.size(0)
-            batch_prompt_range = self.prompt_range.expand(batch_size,-1)
-            soft_prompt = self.soft_prompt(batch_prompt_range)
-            soft_prompt = self.dropout(soft_prompt)
-            attention_mask = torch.concat(
-                [
-                    self.prompt_attention_mask.expand(batch_size, -1),
-                    attention_mask
-                ],
-                dim=-1
-            )
-            token_type_ids = torch.concat(
-                [
-                    self.prompt_token_type_ids.expand(batch_size, -1),
-                    token_type_ids
-                ],
-                dim=-1
-            )
-            new_inputs_embeds = self.bert.embeddings.word_embeddings(input_ids)
-            inputs_embeds = torch.concat(
-                [
-                    soft_prompt,
-                    new_inputs_embeds
-                ],
-                dim=-2
-            )
-            input_ids = None
+        batch_size = input_ids.size(0)
+        batch_prompt_range = self.prompt_range.expand(batch_size,-1)
+        soft_prompt = self.soft_prompt(batch_prompt_range)
+        soft_prompt = self.dropout(soft_prompt)
+        attention_mask = torch.concat(
+            [
+                self.prompt_attention_mask.expand(batch_size, -1),
+                attention_mask
+            ],
+            dim=-1
+        )
+        new_inputs_embeds = self.roberta.embeddings.word_embeddings(input_ids)
+        inputs_embeds = torch.concat(
+            [
+                soft_prompt,
+                new_inputs_embeds
+            ],
+            dim=-2
+        )
+        input_ids = None
 
 
-        outputs = self.bert(
+        outputs = self.roberta(
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,

@@ -186,4 +186,16 @@ class ModelArguments:
     add_mask: bool = field(
         default=False,
         metadata={"help": "Whether to force add [MASK] to sentence."}
+    )    
+    add_prompt: bool = field(
+        default=False,
+        metadata={"help": "Whether to leverage prompt."}
+    )
+    prompt_length: int = field(
+        default=5,
+        metadata={"help": "Length of soft prompt."}
+    )
+    prompt_lr: float = field(
+        default=2e-3,
+        metadata={"help": "Length of soft prompt."}
     )
