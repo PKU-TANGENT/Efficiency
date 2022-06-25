@@ -28,7 +28,7 @@ python swam_glue.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
-  --num_train_epochs 30 \
+  --num_train_epochs 20 \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \

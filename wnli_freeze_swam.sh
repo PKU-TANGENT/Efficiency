@@ -1,14 +1,17 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
-export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=0
-model_name_or_path=roberta-base
-# export TASK_NAME=$1
-# export CUDA_VISIBLE_DEVICES=$2
-# model_name_or_path=$3
+# export WANDB_DISABLED="true"
+# export TASK_NAME=mrpc
+# export CUDA_VISIBLE_DEVICES=3
+# model_name_or_path=roberta-base
+export TASK_NAME=wnli
+export CUDA_VISIBLE_DEVICES=$1
+model_name_or_path=$2
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
-prefix="swam-"
+seed=$3
+prefix="seed-${seed}-swam-prompt-freeze-"
+# suffix="-${}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
@@ -25,7 +28,7 @@ python swam_glue.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate 2e-5 \
-  --num_train_epochs 10 \
+  --num_train_epochs 20 \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \
@@ -33,9 +36,12 @@ python swam_glue.py \
   --load_best_model_at_end \
   --greater_is_better True \
   --private \
-  --early_stopping_patience 10 \
+  --early_stopping_patience 5 \
+  --freeze_backbone \
   --model_class_name "SWAM${model_architecture^}ForSequenceClassification" \
   --model_package_name "modeling_swam_${model_architecture}" \
+  --add_prompt \
+  --seed $seed \
   # --overwrite_output_dir \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

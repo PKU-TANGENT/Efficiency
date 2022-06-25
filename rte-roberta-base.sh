@@ -1,14 +1,15 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
 export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=$1
 model_name_or_path=roberta-base
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
-prefix="swam-"
+seed=$2
+prefix="seed-${seed}-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
@@ -36,6 +37,7 @@ python swam_glue.py \
   --early_stopping_patience 10 \
   --model_class_name "SWAM${model_architecture^}ForSequenceClassification" \
   --model_package_name "modeling_swam_${model_architecture}" \
+  --seed $seed \
   # --overwrite_output_dir \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
