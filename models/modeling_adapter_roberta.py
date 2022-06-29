@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
+from .adapter import Adapter
 from transformers.models.roberta.modeling_roberta import (
-    RobertaPreTrainedModel, 
     RobertaModel, 
-    RobertaClassificationHead, 
     RobertaEncoder, 
     RobertaPooler,
     RobertaLayer,
@@ -15,27 +14,8 @@ from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.pytorch_utils import apply_chunking_to_forward
 from transformers.modeling_outputs import (
     SequenceClassifierOutput,
-    BaseModelOutputWithPastAndCrossAttentions,
     )
-class PoolerRobertaClassificationHead(RobertaClassificationHead):
-    """Head for sentence-level classification tasks."""
-    def __init__(self, config, pooler_type="cls"):
-        super().__init__(config)
-        self.pooler_type = pooler_type
-
-    def forward(self, features, attention_mask=None):
-        if self.pooler_type == "cls":
-            features = features[:, 0]
-        elif self.pooler_type == "avg" and attention_mask is not None:
-            features = (features * attention_mask.unsqueeze(-1)).sum(axis=-2) / attention_mask.sum(axis=-1).unsqueeze(-1)
-        else:
-            raise NotImplementedError
-        x = self.dropout(features)
-        x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        return x
+from .modeling_utils import PoolerClassificationHead
 class AdapterRobertaForSequenceClassification(RobertaForSequenceClassification):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None)
@@ -44,7 +24,7 @@ class AdapterRobertaForSequenceClassification(RobertaForSequenceClassification):
         self.num_labels = config.num_labels
         self.config = config
         self.roberta = AdapterRobertaModel(config, add_pooling_layer=False)
-        self.classifier = PoolerRobertaClassificationHead(config, pooler_type=self.model_args.pooler_type)
+        self.classifier = PoolerClassificationHead(config, pooler_type=self.model_args.pooler_type)
         self.post_init()
     def forward(
         self,
@@ -147,22 +127,5 @@ class AdapterRobertaLayer(RobertaLayer):
         layer_output = self.output(intermediate_output, attention_output)
         adapter_output = self.adapter(layer_output)
         return adapter_output
-
-
-class Adapter(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.down_project = nn.Linear(config.hidden_size, config.project_dim)
-        self.activation = nn.Tanh()
-        self.up_project = nn.Linear(config.project_dim, config.hidden_size)
-        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        outputs = self.down_project(hidden_states)
-        outputs = self.activation(outputs)
-        outputs = self.up_project(outputs)
-        outputs = self.dropout(outputs)
-        outputs = self.LayerNorm(hidden_states + outputs)
-        return outputs
     
     
