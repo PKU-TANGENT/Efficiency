@@ -7,7 +7,6 @@ from transformers.models.roberta.modeling_roberta import (
     RobertaPooler,
     RobertaLayer,
     RobertaEmbeddings,
-    RobertaForSequenceClassification
 )
 from typing import List, Optional, Tuple, Union
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss

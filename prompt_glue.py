@@ -258,8 +258,9 @@ def main():
     if model_args.freeze_backbone:
         model_prefix = model.config._name_or_path.split("-")[0]
         backbone_model = eval("model."+model_prefix)
-        for params in backbone_model.parameters():
-            params.requires_grad = False
+        for n, params in backbone_model.named_parameters():
+            if "soft_prompt" not in n:
+                params.requires_grad = False
 
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:
