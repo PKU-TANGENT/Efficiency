@@ -12,9 +12,7 @@ from transformers.models.roberta.modeling_roberta import (
 from typing import List, Optional, Tuple, Union
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.pytorch_utils import apply_chunking_to_forward
-from transformers.modeling_outputs import (
-    SequenceClassifierOutput,
-    )
+from transformers.modeling_outputs import SequenceClassifierOutput
 from .modeling_utils import PoolerClassificationHead
 class AdapterRobertaForSequenceClassification(RobertaForSequenceClassification):
     def __init__(self, config, **kwargs):
