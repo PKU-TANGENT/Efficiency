@@ -10,7 +10,6 @@ if [[ "${TASK_NAME}" == "mrpc" ]]; then
 else
   num_train_epochs=10
 fi
-
 export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
@@ -21,7 +20,6 @@ else
   pooler_type=avg
 fi
 prefix="prompt-freeze-"
-# pooler_type=cls
 learning_rate=2e-4
 suffix="-${pooler_type}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
