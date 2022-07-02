@@ -25,7 +25,8 @@ class AdapterBertForSequenceClassification(BertForSequenceClassification):
         self.num_labels = config.num_labels
         self.config = config
         self.bert = AdapterBertModel(config, add_pooling_layer=False)
-        self.classifier = PoolerClassificationHead(config, pooler_type=self.model_args.pooler_type)
+        pooler_type = self.model_args.pooler_type if self.model_args is not None else "cls"
+        self.classifier = PoolerClassificationHead(config, pooler_type=pooler_type)
         self.post_init()
     def forward(
         self,
