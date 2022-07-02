@@ -3,14 +3,25 @@ export TOKENIZERS_PARALLELISM=false
 # export WANDB_DISABLED="true"
 # export TASK_NAME=mrpc
 # export CUDA_VISIBLE_DEVICES=3
-model_name_or_path=roberta-base
+model_name_or_path=bert-base-uncased
 export TASK_NAME=$1
+if [[ "${TASK_NAME}" == "mrpc" ]]; then
+  num_train_epochs=5
+else
+  num_train_epochs=10
+fi
+
 export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
+if [[ "${model_architecture}" == "bert" ]]; then
+  pooler_type=cls
+else
+  pooler_type=avg
+fi
 prefix="prompt-freeze-"
-pooler_type=avg
+# pooler_type=cls
 learning_rate=2e-4
 suffix="-${pooler_type}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
@@ -29,7 +40,7 @@ python prompt_glue.py \
   --warmup_ratio 0.06 \
   --weight_decay 0.1 \
   --learning_rate $learning_rate \
-  --num_train_epochs 10 \
+  --num_train_epochs $num_train_epochs \
   --evaluation_strategy "epoch" \
   --save_strategy "epoch" \
   --save_total_limit 1 \
