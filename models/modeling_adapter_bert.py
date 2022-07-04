@@ -21,6 +21,7 @@ class AdapterBertForSequenceClassification(BertForSequenceClassification):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None)
         config.project_dim = self.model_args.project_dim if self.model_args is not None else 1
+        config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
         super(BertForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
         self.config = config

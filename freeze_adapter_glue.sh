@@ -2,8 +2,8 @@
 export TOKENIZERS_PARALLELISM=false
 # export WANDB_DISABLED="true"
 # export TASK_NAME=mrpc
-# export CUDA_VISIBLE_DEVICES=3
-model_name_or_path=roberta-base
+# export CUDA_VISIBLE_DEVICES=0
+# model_name_or_path=roberta-base
 export TASK_NAME=$1
 if [[ "${TASK_NAME}" == "mrpc" ]]; then
   num_train_epochs=5
@@ -11,7 +11,7 @@ else
   num_train_epochs=10
 fi
 export CUDA_VISIBLE_DEVICES=$2
-# model_name_or_path=$3
+model_name_or_path=$3
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -55,5 +55,6 @@ python adapter_glue.py \
   --project_dim 1 \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
+  --elementwise_affine False \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

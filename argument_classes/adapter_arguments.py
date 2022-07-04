@@ -195,3 +195,7 @@ class ModelArguments:
         default="cls",
         metadata={"help": "Which pooler type to use. Should be in [cls, avg]"}
     )
+    elementwise_affine: bool=field(
+        default=True,
+        metadata={"help":"Whether to use elementwise_affine for LayerNorm in Adapter."}
+    )
