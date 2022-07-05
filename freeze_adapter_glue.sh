@@ -55,6 +55,6 @@ python adapter_glue.py \
   --project_dim 1 \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
-  --elementwise_affine False \
+  # --elementwise_affine False \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
