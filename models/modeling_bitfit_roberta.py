@@ -21,6 +21,7 @@ class BitfitRobertaForSequenceClassification(RobertaForSequenceClassification):
             'attention.self.query',
             'intermediate.dense', 
             ]
+        config.bitfit_layers=list(map(int,self.model_args.bitfit_layers.split(","))) if self.model_args is not None else [10] 
         super(RobertaForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -114,9 +115,13 @@ class BitfitRobertaEncoder(RobertaEncoder):
         super(RobertaEncoder, self).__init__()
         self.config = config
         assert config.num_hidden_layers > 1
-        tmp_layer_list = [RobertaLayer(config) for _ in range(config.num_hidden_layers-2)]
-        tmp_layer_list.append(BitfitRobertaLayer(config))
-        tmp_layer_list.append(RobertaLayer(config))
+        tmp_layer_list=[]
+        for i in range(config.num_hidden_layers):
+            if i in config.bitfit_layers:
+                tmp_layer_list.append(BitfitRobertaLayer(config))
+            else:
+                tmp_layer_list.append(RobertaLayer(config))
+
         self.layer = nn.ModuleList(tmp_layer_list)
         self.gradient_checkpointing = False
 

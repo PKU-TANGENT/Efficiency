@@ -195,3 +195,7 @@ class ModelArguments:
         default="cls",
         metadata={"help": "Which pooler type to use. Should be in [cls, avg]"}
     )
+    prompt_layers: str = field(
+        default="10",
+        metadata={"help": "Layers to use prompt, separated by comma."}
+    )

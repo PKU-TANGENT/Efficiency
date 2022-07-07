@@ -195,3 +195,7 @@ class ModelArguments:
         default="cls",
         metadata={"help": "Which pooler type to use. Should be in [cls, avg]"}
     )
+    bitfit_layers: str = field(
+        default="10",
+        metadata={"help": "Layers to use bitfit, separated by comma."}
+    )

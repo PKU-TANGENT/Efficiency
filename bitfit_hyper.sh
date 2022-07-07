@@ -12,7 +12,7 @@ else
 fi
 export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
-adapter_layers=$2
+bitfit_layers=$2
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -20,14 +20,14 @@ if [[ "${model_architecture}" == "bert" ]]; then
 else
   pooler_type=avg
 fi
-prefix="adapter-freeze-"
-learning_rate=2e-3
-suffix="-${pooler_type}-layer${adapter_layers}"
+prefix="bitfit-freeze-"
+learning_rate=2e-4
+suffix="-${pooler_type}-layer${bitfit_layers}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
-# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client adapter_glue.py \
-python adapter_glue.py \
+# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client bitfit_glue.py \
+python bitfit_glue.py \
   --task_name $TASK_NAME \
   --model_name_or_path $model_name_or_path \
   --do_train \
@@ -49,14 +49,13 @@ python adapter_glue.py \
   --private \
   --early_stopping_patience 5 \
   --freeze_backbone \
-  --model_class_name "Adapter${model_architecture^}ForSequenceClassification" \
-  --model_package_name "modeling_adapter_${model_architecture}" \
+  --model_class_name "Bitfit${model_architecture^}ForSequenceClassification" \
+  --model_package_name "modeling_bitfit_${model_architecture}" \
   --model_head_lr $learning_rate \
-  --adapter_lr $learning_rate \
-  --project_dim 1 \
+  --bitfit_lr $learning_rate \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
-  --adapter_layers $adapter_layers \
+  --bitfit_layers $bitfit_layers \
   # --elementwise_affine False \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

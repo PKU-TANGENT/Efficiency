@@ -199,3 +199,7 @@ class ModelArguments:
         default=True,
         metadata={"help":"Whether to use elementwise_affine for LayerNorm in Lora."}
     )
+    lora_layers: str = field(
+        default="10",
+        metadata={"help": "Layers to use lora, separated by comma."}
+    )

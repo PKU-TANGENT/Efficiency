@@ -24,6 +24,7 @@ class PromptRobertaForSequenceClassification(RobertaPreTrainedModel):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None) 
         config.prompt_length = self.model_args.prompt_length if self.model_args is not None else 2
+        config.prompt_layers=list(map(int,self.model_args.prompt_layers.split(","))) if self.model_args is not None else [10] 
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -110,9 +111,13 @@ class PromptRobertaEncoder(RobertaEncoder):
         super(RobertaEncoder, self).__init__()
         self.config = config
         assert config.num_hidden_layers > 1
-        tmp_layer_list = [RobertaLayer(config) for _ in range(config.num_hidden_layers-2)]
-        tmp_layer_list.append(PromptRobertaLayer(config))
-        tmp_layer_list.append(RobertaLayer(config))
+        tmp_layer_list=[]
+        for i in range(config.num_hidden_layers):
+            if i in config.prompt_layers:
+                tmp_layer_list.append(PromptRobertaLayer(config))
+            else:
+                tmp_layer_list.append(RobertaLayer(config))
+
         self.layer = nn.ModuleList(tmp_layer_list)
         self.gradient_checkpointing = False
 

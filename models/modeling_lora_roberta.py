@@ -24,6 +24,7 @@ class LoraRobertaForSequenceClassification(RobertaForSequenceClassification):
         self.model_args = kwargs.pop('model_args', None)
         config.lora_rank = self.model_args.lora_rank if self.model_args is not None else 1
         config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
+        config.lora_layers=list(map(int,self.model_args.lora_layers.split(","))) if self.model_args is not None else [10] 
         super(RobertaForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -117,9 +118,14 @@ class LoraRobertaEncoder(RobertaEncoder):
         super(RobertaEncoder, self).__init__()
         self.config = config
         assert config.num_hidden_layers > 1
-        tmp_layer_list = [RobertaLayer(config) for _ in range(config.num_hidden_layers-2)]
-        tmp_layer_list.append(LoraRobertaLayer(config))
-        tmp_layer_list.append(RobertaLayer(config))
+        tmp_layer_list=[]
+        for i in range(config.num_hidden_layers):
+            if i in config.lora_layers:
+                tmp_layer_list.append(LoraRobertaLayer(config))
+            else:
+                tmp_layer_list.append(RobertaLayer(config))
+
+
         self.layer = nn.ModuleList(tmp_layer_list)
         self.gradient_checkpointing = False
 

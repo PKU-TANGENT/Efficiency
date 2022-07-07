@@ -4,7 +4,7 @@ export TOKENIZERS_PARALLELISM=false
 # export TASK_NAME=mrpc
 # export CUDA_VISIBLE_DEVICES=0
 # model_name_or_path=roberta-base
-export TASK_NAME=$1
+TASK_NAME=$1
 if [[ "${TASK_NAME}" == "mrpc" ]]; then
   num_train_epochs=5
 else

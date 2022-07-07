@@ -199,3 +199,7 @@ class ModelArguments:
         default=True,
         metadata={"help":"Whether to use elementwise_affine for LayerNorm in Adapter."}
     )
+    adapter_layers: str = field(
+        default="10",
+        metadata={"help": "Layers to use adapter, separated by comma."}
+    )
