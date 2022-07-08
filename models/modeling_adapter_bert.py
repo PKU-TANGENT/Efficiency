@@ -22,6 +22,7 @@ class AdapterBertForSequenceClassification(BertForSequenceClassification):
         self.model_args = kwargs.pop('model_args', None)
         config.project_dim = self.model_args.project_dim if self.model_args is not None else 1
         config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
+        config.adapter_layers=list(map(int,self.model_args.adapter_layers.split(","))) if self.model_args is not None else [10] 
         super(BertForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -115,9 +116,13 @@ class AdapterBertEncoder(BertEncoder):
         super(BertEncoder, self).__init__()
         self.config = config
         assert config.num_hidden_layers > 1
-        tmp_layer_list = [BertLayer(config) for _ in range(config.num_hidden_layers-2)]
-        tmp_layer_list.append(AdapterBertLayer(config))
-        tmp_layer_list.append(BertLayer(config))
+        tmp_layer_list=[]
+        for i in range(config.num_hidden_layers):
+            if i in config.adapter_layers:
+                tmp_layer_list.append(AdapterBertLayer(config))
+            else:
+                tmp_layer_list.append(BertLayer(config))
+
         self.layer = nn.ModuleList(tmp_layer_list)
         self.gradient_checkpointing = False
 

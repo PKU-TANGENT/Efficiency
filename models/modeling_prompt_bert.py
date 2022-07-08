@@ -23,6 +23,7 @@ class PromptBertForSequenceClassification(BertPreTrainedModel):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None) 
         config.prompt_length = self.model_args.prompt_length if self.model_args is not None else 2
+        config.prompt_layers=list(map(int,self.model_args.prompt_layers.split(","))) if self.model_args is not None else [10] 
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -109,9 +110,13 @@ class PromptBertEncoder(BertEncoder):
         super(BertEncoder, self).__init__()
         self.config = config
         assert config.num_hidden_layers > 1
-        tmp_layer_list = [BertLayer(config) for _ in range(config.num_hidden_layers-2)]
-        tmp_layer_list.append(PromptBertLayer(config))
-        tmp_layer_list.append(BertLayer(config))
+        tmp_layer_list=[]
+        for i in range(config.num_hidden_layers):
+            if i in config.prompt_layers:
+                tmp_layer_list.append(PromptBertLayer(config))
+            else:
+                tmp_layer_list.append(BertLayer(config))
+
         self.layer = nn.ModuleList(tmp_layer_list)
         self.gradient_checkpointing = False
 
@@ -129,6 +134,7 @@ class PromptBertLayer(BertLayer):
             self.crossattention = PromptBertAttention(config, position_embedding_type="absolute")
         self.intermediate = BertIntermediate(config)
         self.output = BertOutput(config)
+        
 class PromptBertAttention(BertAttention):
     def __init__(self, config, position_embedding_type=None):
         super(BertAttention, self).__init__()

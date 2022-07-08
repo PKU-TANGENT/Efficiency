@@ -1,10 +1,10 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
 # export WANDB_DISABLED="true"
-TASK_NAME=mrpc
+# TASK_NAME=mrpc
 # export CUDA_VISIBLE_DEVICES=0
 model_name_or_path=roberta-base
-# TASK_NAME=$1
+TASK_NAME=$2
 if [[ "${TASK_NAME}" == "mrpc" ]]; then
   num_train_epochs=5
 else
@@ -12,7 +12,10 @@ else
 fi
 export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
-adapter_layers=$2
+project_dim=1
+# adapter_layers=$2
+adapter_layers=5
+# project_dim=$3
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -22,7 +25,7 @@ else
 fi
 prefix="adapter-freeze-"
 learning_rate=2e-3
-suffix="-${pooler_type}-layer${adapter_layers}"
+suffix="-${pooler_type}-layer${adapter_layers}-project_dim${project_dim}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
@@ -53,7 +56,7 @@ python adapter_glue.py \
   --model_package_name "modeling_adapter_${model_architecture}" \
   --model_head_lr $learning_rate \
   --adapter_lr $learning_rate \
-  --project_dim 1 \
+  --project_dim $project_dim \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
   --adapter_layers $adapter_layers \
