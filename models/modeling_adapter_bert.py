@@ -20,6 +20,7 @@ from .modeling_utils import PoolerClassificationHead
 class AdapterBertForSequenceClassification(BertForSequenceClassification):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None)
+        config.is_parallel = self.model_args.is_parallel if self.model_args is not None else False
         config.project_dim = self.model_args.project_dim if self.model_args is not None else 1
         config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
         config.adapter_layers=list(map(int,self.model_args.adapter_layers.split(","))) if self.model_args is not None else [10] 
@@ -130,10 +131,24 @@ class AdapterBertLayer(BertLayer):
     def __init__(self, config):
         super().__init__(config)
         self.adapter = Adapter(config)
-    def feed_forward_chunk(self, attention_output):
+        if config.is_parallel:
+            self.feed_forward_chunk = self.parallel_feed_forward_chunk
+        else:
+            self.feed_forward_chunk = self.sequential_feed_forward_chunk
+    def sequential_feed_forward_chunk(self, attention_output):
         intermediate_output = self.intermediate(attention_output)
         layer_output = self.output(intermediate_output, attention_output)
         adapter_output = self.adapter(layer_output)
         return adapter_output
+    def parallel_feed_forward_chunk(self, attention_output):
+        intermediate_output = self.intermediate(attention_output)
+        adapter_output = self.adapter(attention_output)
+        layer_output = self.output(intermediate_output, adapter_output)
+        return layer_output
+    # def feed_forward_chunk(self, attention_output):
+    #     intermediate_output = self.intermediate(attention_output)
+    #     layer_output = self.output(intermediate_output, attention_output)
+    #     adapter_output = self.adapter(layer_output)
+    #     return adapter_output
     
     

@@ -203,3 +203,7 @@ class ModelArguments:
         default="10",
         metadata={"help": "Layers to use adapter, separated by comma."}
     )
+    is_parallel: bool = field(
+        default=False,
+        metadata={"help":"Whether to use parallel style adapter."}
+    )

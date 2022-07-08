@@ -15,6 +15,7 @@ export CUDA_VISIBLE_DEVICES=$1
 project_dim=1
 # adapter_layers=$2
 adapter_layers=5
+is_parallel=True
 # project_dim=$3
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
@@ -25,7 +26,7 @@ else
 fi
 prefix="adapter-freeze-"
 learning_rate=2e-3
-suffix="-${pooler_type}-layer${adapter_layers}-project_dim${project_dim}"
+suffix="-${pooler_type}-layer${adapter_layers}-project_dim${project_dim}-is_parallel${is_parallel}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
@@ -60,6 +61,7 @@ python adapter_glue.py \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
   --adapter_layers $adapter_layers \
+  --is_parallel $is_parallel \
   # --elementwise_affine False \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
