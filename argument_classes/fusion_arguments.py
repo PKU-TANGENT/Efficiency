@@ -156,15 +156,15 @@ class ModelArguments:
         metadata={"help": "Whether to use a custom model or not."},
     )
     model_class_name: str = field(
-        default="LoraRobertaForSequenceClassification",
+        default="FusionRobertaForSequenceClassification",
         metadata={"help": "Name of the model class to use."},
     )
     model_package_name: str = field(
-        default="modeling_lora_roberta",
+        default="modeling_fusion_roberta",
         metadata={"help": "Name of the model package to use."},
     )
     model_head_lr: float = field(
-        default=2e-5,
+        default=2e-3,
         metadata={"help": "Learning rate for the model head."},
     )
     custom_trainer: bool = field(
@@ -172,34 +172,74 @@ class ModelArguments:
         metadata={"help": "Whether to use a custom trainer or not."},
     )
     trainer_class_name: str = field(
-        default="LoraTrainer",
+        default="FusionTrainer",
         metadata={"help": "Name of the trainer class to use."},
     )
     trainer_package_name: str = field(
-        default="lora_trainer",
+        default="fusion_trainer",
         metadata={"help": "Name of the trainer package to use."},
     )
     freeze_backbone: bool = field(
         default=False,
         metadata={"help": "Whether to freeze PLM backbone."}
     )  
-    lora_lr: float = field(
+    pooler_type: str = field(
+        default="cls",
+        metadata={"help": "Which pooler type to use. Should be in [cls, avg]"}
+    )
+    adapter_lr: float = field(
         default=2e-3,
-        metadata={"help": "Learning rate for lora."}
+        metadata={"help": "Learning rate for adapter."}
+    )
+    project_dim: int = field(
+        default=1,
+        metadata={"help": "Dimension of down projection with regard to adapter."}
+    )
+    elementwise_affine: bool=field(
+        default=True,
+        metadata={"help":"Whether to use elementwise_affine for LayerNorm in Adapter."}
+    )
+    adapter_layers: str = field(
+        default="5",
+        metadata={"help": "Layers to use adapter, separated by comma."}
+    )
+    is_parallel: bool = field(
+        default=True,
+        metadata={"help":"Whether to use parallel style adapter."}
+    )
+    lora_layers: str = field(
+        default="10",
+        metadata={"help": "Layers to use lora, separated by comma."}
     )
     lora_rank: int = field(
         default=1,
         metadata={"help": "Dimension of down projection with regard to lora."}
     )
-    pooler_type: str = field(
-        default="cls",
-        metadata={"help": "Which pooler type to use. Should be in [cls, avg]"}
+    lora_lr: float = field(
+        default=2e-3,
+        metadata={"help": "Learning rate for lora."}
     )
-    elementwise_affine: bool=field(
-        default=True,
-        metadata={"help":"Whether to use elementwise_affine for LayerNorm in Lora."}
+    prompt_layers: str = field(
+        default="-1",
+        metadata={"help": "Layers to use prompt, separated by comma."}
     )
-    lora_layers: str = field(
-        default="10",
-        metadata={"help": "Layers to use lora, separated by comma."}
+    prompt_length: int = field(
+        default=2,
+        metadata={"help": "Length of soft prompt."}
+    )
+    prompt_lr: float = field(
+        default=2e-4,
+        metadata={"help": "Length of soft prompt."}
+    )
+    bitfit_lr: float = field(
+        default=2e-4,
+        metadata={"help": "Learning rate for bitfit."}
+    )
+    bitfit_selection: str = field(
+        default="attention.self.query,intermediate.dense",
+        metadata={"help" : "Selection of layer modules to tune bias, separated by comma."}
+    )
+    bitfit_layers: str = field(
+        default="-1",
+        metadata={"help": "Layers to use bitfit, separated by comma."}
     )

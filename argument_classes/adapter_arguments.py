@@ -164,7 +164,7 @@ class ModelArguments:
         metadata={"help": "Name of the model package to use."},
     )
     model_head_lr: float = field(
-        default=2e-5,
+        default=2e-3,
         metadata={"help": "Learning rate for the model head."},
     )
     custom_trainer: bool = field(
@@ -184,7 +184,7 @@ class ModelArguments:
         metadata={"help": "Whether to freeze PLM backbone."}
     )  
     adapter_lr: float = field(
-        default=2e-4,
+        default=2e-3,
         metadata={"help": "Learning rate for adapter."}
     )
     project_dim: int = field(
@@ -200,10 +200,10 @@ class ModelArguments:
         metadata={"help":"Whether to use elementwise_affine for LayerNorm in Adapter."}
     )
     adapter_layers: str = field(
-        default="10",
+        default="5",
         metadata={"help": "Layers to use adapter, separated by comma."}
     )
     is_parallel: bool = field(
-        default=False,
+        default=True,
         metadata={"help":"Whether to use parallel style adapter."}
     )

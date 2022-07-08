@@ -33,3 +33,8 @@ class Lora(nn.Linear):
         return 'in_features={}, out_features={}, lora_rank={}, bias={}'.format(
             self.in_features, self.out_features, self.lora_rank, self.bias is not None
         )
+
+def modify_lora_layer(layer, config):
+    layer.attention.self.query = Lora(config.hidden_size, layer.attention.self.all_head_size, config.lora_rank)
+    layer.attention.self.key = Lora(config.hidden_size, layer.attention.self.all_head_size, config.lora_rank)
+    return layer

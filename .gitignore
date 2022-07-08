@@ -4,3 +4,4 @@ __pycache__
 *.ipynb
 explicability
 ray_results
+*playground*
