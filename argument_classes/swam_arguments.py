@@ -151,23 +151,51 @@ class ModelArguments:
         default=False,
         metadata={"help": "Whether to create private repo on huggingface."},
     )
-    freeze_backbone: bool = field(
-        default=False,
-        metadata={"help":" Whether to freeze PLM backbone."}
+    custom_model: bool = field(
+        default=True,
+        metadata={"help": "Whether to use a custom model or not."},
     )
     model_class_name: str = field(
-        default="PoolerRobertaForSequenceClassification",
+        default="SWAMRobertaForSequenceClassification",
         metadata={"help": "Name of the model class to use."},
     )
     model_package_name: str = field(
-        default="modeling_roberta",
+        default="modeling_swam_roberta",
         metadata={"help": "Name of the model package to use."},
     )
-    pooler_type: str = field(
-        default="cls",
-        metadata={"help": "Which kind of pooler to use."}
+    model_head_lr: float = field(
+        default=2e-5,
+        metadata={"help": "Learning rate for the model head."},
     )
-    ffn_layers: str = field(
-        default="10",
-        metadata={"help":"Which layer of ffn to tune only."}
+    custom_trainer: bool = field(
+        default=True,
+        metadata={"help": "Whether to use a custom trainer or not."},
+    )
+    trainer_class_name: str = field(
+        default="SWAMTrainer",
+        metadata={"help": "Name of the trainer class to use."},
+    )
+    trainer_package_name: str = field(
+        default="swam_trainer",
+        metadata={"help": "Name of the trainer package to use."},
+    )
+    freeze_backbone: bool = field(
+        default=False,
+        metadata={"help": "Whether to freeze PLM backbone."}
+    )
+    add_mask: bool = field(
+        default=False,
+        metadata={"help": "Whether to force add [MASK] to sentence."}
+    )    
+    add_prompt: bool = field(
+        default=False,
+        metadata={"help": "Whether to leverage prompt."}
+    )
+    prompt_length: int = field(
+        default=5,
+        metadata={"help": "Length of soft prompt."}
+    )
+    prompt_lr: float = field(
+        default=2e-3,
+        metadata={"help": "Length of soft prompt."}
     )

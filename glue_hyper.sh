@@ -12,8 +12,8 @@ else
 fi
 export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
-# ffn_layers=$2
-ffn_layers=10
+ffn_layers=$2
+# ffn_layers=10
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -22,8 +22,8 @@ else
   pooler_type=avg
 fi
 prefix="ffn_only-"
-# learning_rate=2e-3
-learning_rate=$2
+learning_rate=2e-4
+# learning_rate=$2
 suffix="-${pooler_type}-layer${ffn_layers}-lr${learning_rate}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
@@ -55,5 +55,6 @@ python run_glue.py \
   --model_package_name "modeling_${model_architecture}" \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
+  --ffn_layers $ffn_layers \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

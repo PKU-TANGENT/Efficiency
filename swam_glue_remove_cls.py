@@ -45,7 +45,7 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
-from argument_classes.default_arguments import DataTrainingArguments, ModelArguments
+from argument_classes.swam_arguments import DataTrainingArguments, ModelArguments
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.

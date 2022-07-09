@@ -1,9 +1,9 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
 # export WANDB_DISABLED="true"
-TASK_NAME=mrpc
+TASK_NAME=cola
 # export CUDA_VISIBLE_DEVICES=0
-model_name_or_path=bert-base-uncased
+model_name_or_path=roberta-base
 # TASK_NAME=$2
 if [[ "${TASK_NAME}" == "mrpc" ]]; then
   num_train_epochs=5
