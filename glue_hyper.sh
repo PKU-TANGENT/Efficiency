@@ -11,9 +11,11 @@ else
   num_train_epochs=10
 fi
 export CUDA_VISIBLE_DEVICES=$1
+num_hidden_layers=$2
 # model_name_or_path=$3
-ffn_layers=$2
+# ffn_layers=$2
 # ffn_layers=10
+freeze_backbone=False
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -21,10 +23,10 @@ if [[ "${model_architecture}" == "bert" ]]; then
 else
   pooler_type=avg
 fi
-prefix="ffn_only-"
-learning_rate=2e-4
+prefix=""
+learning_rate=2e-5
 # learning_rate=$2
-suffix="-${pooler_type}-layer${ffn_layers}-lr${learning_rate}"
+suffix="-${pooler_type}-ffn_layer${ffn_layers}-lr${learning_rate}-num_hidden_layers${num_hidden_layers}-frozen${freeze_backbone}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
@@ -50,11 +52,12 @@ python run_glue.py \
   --greater_is_better True \
   --private \
   --early_stopping_patience 5 \
-  --freeze_backbone \
   --model_class_name "Pooler${model_architecture^}ForSequenceClassification" \
   --model_package_name "modeling_${model_architecture}" \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
-  --ffn_layers $ffn_layers \
+  --num_hidden_layers $num_hidden_layers \
+  --freeze_backbone $freeze_backbone \
+  # --ffn_layers $ffn_layers \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

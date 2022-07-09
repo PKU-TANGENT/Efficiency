@@ -168,6 +168,10 @@ class ModelArguments:
         metadata={"help": "Which kind of pooler to use."}
     )
     ffn_layers: str = field(
-        default="10",
+        default="-1",
         metadata={"help":"Which layer of ffn to tune only."}
+    )
+    num_hidden_layers: int = field(
+        default=-1,
+        metadata={"help":"Number of layers of backbone model."}
     )
