@@ -11,15 +11,12 @@ else
   num_train_epochs=10
 fi
 export CUDA_VISIBLE_DEVICES=$1
+# num_hidden_layers=$2
+num_hidden_layers=-1
 # model_name_or_path=$3
-project_dim=1
-adapter_layers=5
-is_parallel=True
-
-lora_layers=$2
-lora_rank=1
-# adapter_layers=$2
-# project_dim=$3
+# ffn_layers=$3
+ffn_layers=4
+freeze_backbone=True
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -27,16 +24,15 @@ if [[ "${model_architecture}" == "bert" ]]; then
 else
   pooler_type=avg
 fi
-prefix="fusion-freeze-"
-learning_rate=2e-3
-adapter_relevant="-adapter_layers${adapter_layers}-project_dim${project_dim}-is_parallel${is_parallel}"
-lora_relevant="-lora_layers${lora_layers}-lora_rank${lora_rank}"
-suffix="-${pooler_type}${adapter_relevant}${lora_relevant}-lr${learning_rate}"
+prefix="ffn-"
+# learning_rate=2e-3
+learning_rate=$2
+suffix="-${pooler_type}-ffn_layer${ffn_layers}-lr${learning_rate}-num_hidden_layers${num_hidden_layers}-frozen${freeze_backbone}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
-# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client fusion_glue.py \
-python fusion_glue.py \
+# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue.py \
+python run_glue.py \
   --task_name $TASK_NAME \
   --model_name_or_path $model_name_or_path \
   --do_train \
@@ -57,20 +53,12 @@ python fusion_glue.py \
   --greater_is_better True \
   --private \
   --early_stopping_patience 5 \
-  --freeze_backbone \
-  --model_class_name "Fusion${model_architecture^}ForSequenceClassification" \
-  --model_package_name "modeling_fusion_${model_architecture}" \
-  --trainer_class_name FusionTrainer \
-  --trainer_package_name fusion_trainer \
-  --model_head_lr $learning_rate \
-  --adapter_lr $learning_rate \
-  --project_dim $project_dim \
+  --model_class_name "Pooler${model_architecture^}ForSequenceClassification" \
+  --model_package_name "modeling_${model_architecture}" \
   --pooler_type $pooler_type \
   --overwrite_output_dir \
-  --adapter_layers $adapter_layers \
-  --is_parallel $is_parallel \
-  --lora_layers $lora_layers \
-  --lora_rank $lora_rank \
-  # --elementwise_affine False \
+  --num_hidden_layers $num_hidden_layers \
+  --freeze_backbone $freeze_backbone \
+  --ffn_layers $ffn_layers \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

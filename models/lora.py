@@ -37,4 +37,6 @@ class Lora(nn.Linear):
 def modify_lora_layer(layer, config):
     layer.attention.self.query = Lora(config.hidden_size, layer.attention.self.all_head_size, config.lora_rank)
     layer.attention.self.key = Lora(config.hidden_size, layer.attention.self.all_head_size, config.lora_rank)
+    # layer.attention.self.value = Lora(config.hidden_size, layer.attention.self.all_head_size, config.lora_rank)
+    # layer.attention.output.dense = Lora(config.hidden_size, config.hidden_size, config.lora_rank)
     return layer
