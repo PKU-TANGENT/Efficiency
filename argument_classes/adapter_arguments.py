@@ -207,3 +207,7 @@ class ModelArguments:
         default=True,
         metadata={"help":"Whether to use parallel style adapter."}
     )
+    identity_init: bool = field(
+        default=False,
+        metadata={"help":"Whether to init adapter transform to Identity."}
+    )

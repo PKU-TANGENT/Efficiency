@@ -17,14 +17,17 @@ from .modeling_utils import PoolerClassificationHead
 class FusionRobertaForSequenceClassification(RobertaForSequenceClassification):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None)
+        
         config.is_parallel = self.model_args.is_parallel if self.model_args is not None else False
         config.project_dim = self.model_args.project_dim if self.model_args is not None else 1
         config.adapter_layers=list(map(int,self.model_args.adapter_layers.split(","))) if self.model_args is not None else [5] 
         config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
+        config.identity_init = self.model_args.identity_init if self.model_args is not None else False
         config.lora_rank = self.model_args.lora_rank if self.model_args is not None else 1
         config.lora_layers=list(map(int,self.model_args.lora_layers.split(","))) if self.model_args is not None else [10] 
         config.prompt_length = self.model_args.prompt_length if self.model_args is not None else 2
         config.prompt_layers=list(map(int,self.model_args.prompt_layers.split(","))) if self.model_args is not None else [-1] 
+
         super(RobertaForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
         self.config = config

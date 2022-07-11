@@ -13,10 +13,12 @@ fi
 export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
 project_dim=1
-adapter_layers=5
+adapter_layers=0,1,2,3,4,5,6,7,8,9,10,11
+# adapter_layers=$2
 is_parallel=True
 
-lora_layers=$2
+# lora_layers=$2
+lora_layers=0,1,2,3,4,5,6,7,8,9,10,11
 lora_rank=1
 # adapter_layers=$2
 # project_dim=$3

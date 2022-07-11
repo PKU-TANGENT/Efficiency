@@ -243,3 +243,7 @@ class ModelArguments:
         default="-1",
         metadata={"help": "Layers to use bitfit, separated by comma."}
     )
+    identity_init: bool = field(
+        default=False,
+        metadata={"help":"Whether to init adapter transform to Identity."}
+    )

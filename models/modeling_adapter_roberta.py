@@ -18,6 +18,7 @@ class AdapterRobertaForSequenceClassification(RobertaForSequenceClassification):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None)
         config.is_parallel = self.model_args.is_parallel if self.model_args is not None else False
+        config.identity_init = self.model_args.identity_init if self.model_args is not None else False
         config.project_dim = self.model_args.project_dim if self.model_args is not None else 1
         config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
         config.adapter_layers=list(map(int,self.model_args.adapter_layers.split(","))) if self.model_args is not None else [10] 
