@@ -207,6 +207,14 @@ class ModelArguments:
         default=True,
         metadata={"help":"Whether to use parallel style adapter."}
     )
+    identity_init: bool = field(
+        default=False,
+        metadata={"help":"Whether to init adapter transform to Identity."}
+    )
+    position: str = field(
+        default="ffn",
+        metadata={"help":"The position to insert adapters."}
+    )
     lora_layers: str = field(
         default="10",
         metadata={"help": "Layers to use lora, separated by comma."}
@@ -218,6 +226,15 @@ class ModelArguments:
     lora_lr: float = field(
         default=2e-3,
         metadata={"help": "Learning rate for lora."}
+    )
+    rand_init: bool = field(
+        default=False,
+        metadata={"help":"Whether to randomly init LoRA weights instead of Identity init."}
+    )
+    lora_target: str=field(
+        default="q,k",
+        metadata={"help":"""Target of linear weight to apply LoRA to in the attention block, separated by comma.
+                            Available options should be in [q,k,v,d]."""}
     )
     prompt_layers: str = field(
         default="-1",
@@ -242,8 +259,4 @@ class ModelArguments:
     bitfit_layers: str = field(
         default="-1",
         metadata={"help": "Layers to use bitfit, separated by comma."}
-    )
-    identity_init: bool = field(
-        default=False,
-        metadata={"help":"Whether to init adapter transform to Identity."}
     )

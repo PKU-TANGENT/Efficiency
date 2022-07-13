@@ -13,15 +13,16 @@ fi
 export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
 project_dim=1
-adapter_layers=0,1,2,3,4,5,6,7,8,9,10,11
-# adapter_layers=$2
+adapter_layers=5
+# adapter_layers=-1
+# adapter_layers=0,1,2,3,4,5,6,7,8,9,10,11
+adapter_position=ffn
 is_parallel=True
-
+# lora_layers=0,1,2,3,4,5,6,7,8,9,10,11
 # lora_layers=$2
-lora_layers=0,1,2,3,4,5,6,7,8,9,10,11
+lora_layers=10
 lora_rank=1
-# adapter_layers=$2
-# project_dim=$3
+lora_target="q,k"
 IFS="-" read -r -a name_parser <<< "$model_name_or_path"
 model_architecture="${name_parser[0]}"
 if [[ "${model_architecture}" == "bert" ]]; then
@@ -31,8 +32,8 @@ else
 fi
 prefix="fusion-freeze-"
 learning_rate=2e-3
-adapter_relevant="-adapter_layers${adapter_layers}-project_dim${project_dim}-is_parallel${is_parallel}"
-lora_relevant="-lora_layers${lora_layers}-lora_rank${lora_rank}"
+adapter_relevant="-adapter_layers${adapter_layers}-project_dim${project_dim}-is_parallel${is_parallel}-postion${adapter_position}"
+lora_relevant="-lora_layers${lora_layers}-lora_rank${lora_rank}-lora_target${lora_target}"
 suffix="-${pooler_type}${adapter_relevant}${lora_relevant}-lr${learning_rate}"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}${suffix}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}${suffix}/${TASK_NAME}/"
@@ -73,6 +74,8 @@ python fusion_glue.py \
   --is_parallel $is_parallel \
   --lora_layers $lora_layers \
   --lora_rank $lora_rank \
+  --position $adapter_position \
+  --lora_target $lora_target \
   # --elementwise_affine False \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \

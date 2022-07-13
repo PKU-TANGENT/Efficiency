@@ -1,19 +1,46 @@
 import torch
+import math
 import torch.nn as nn
 from .adapter import Adapter
-from .lora import Lora, modify_lora_layer
+from .lora import Lora
 from transformers.models.roberta.modeling_roberta import (
     RobertaModel, 
     RobertaEncoder, 
     RobertaPooler,
     RobertaLayer,
     RobertaEmbeddings,
-    RobertaForSequenceClassification
+    RobertaForSequenceClassification,
+    RobertaSelfOutput
 )
 from typing import List, Optional, Tuple, Union
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
 from .modeling_utils import PoolerClassificationHead
+def modify_lora_layer(layer, config):
+    targets = config.lora_target
+    if "q" in targets:
+        layer.attention.self.query = Lora(
+            config.hidden_size, 
+            layer.attention.self.all_head_size, 
+            config.lora_rank
+            ) if not config.rand_init else LoraRandInit(
+            config.hidden_size, 
+            layer.attention.self.all_head_size, 
+            config.lora_rank)
+    if "k" in targets:
+        layer.attention.self.key = Lora(
+            config.hidden_size, 
+            layer.attention.self.all_head_size, 
+            config.lora_rank
+            ) if not config.rand_init else LoraRandInit(
+            config.hidden_size, 
+            layer.attention.self.all_head_size, 
+            config.lora_rank)
+    if "v" in targets:
+        layer.attention.self.value = Lora(config.hidden_size, layer.attention.self.all_head_size, config.lora_rank)
+    if "d" in targets:
+        layer.attention.output.dense = Lora(config.hidden_size, config.hidden_size, config.lora_rank)
+    return layer
 class FusionRobertaForSequenceClassification(RobertaForSequenceClassification):
     def __init__(self, config, **kwargs):
         self.model_args = kwargs.pop('model_args', None)
@@ -21,10 +48,13 @@ class FusionRobertaForSequenceClassification(RobertaForSequenceClassification):
         config.is_parallel = self.model_args.is_parallel if self.model_args is not None else False
         config.project_dim = self.model_args.project_dim if self.model_args is not None else 1
         config.adapter_layers=list(map(int,self.model_args.adapter_layers.split(","))) if self.model_args is not None else [5] 
+        config.position=self.model_args.position if self.model_args is not None else "ffn"
         config.elementwise_affine = self.model_args.elementwise_affine if self.model_args is not None else True
         config.identity_init = self.model_args.identity_init if self.model_args is not None else False
         config.lora_rank = self.model_args.lora_rank if self.model_args is not None else 1
         config.lora_layers=list(map(int,self.model_args.lora_layers.split(","))) if self.model_args is not None else [10] 
+        config.lora_target=list(self.model_args.lora_target.split(",")) if self.model_args is not None else ["q","k"]
+        config.rand_init = self.model_args.rand_init if self.model_args is not None else False
         config.prompt_length = self.model_args.prompt_length if self.model_args is not None else 2
         config.prompt_layers=list(map(int,self.model_args.prompt_layers.split(","))) if self.model_args is not None else [-1] 
 
@@ -127,19 +157,25 @@ class FusionRobertaEncoder(RobertaEncoder):
                 tmp_layer_list.append(AdapterRobertaLayer(config))
             else:
                 tmp_layer_list.append(RobertaLayer(config))
-        for ii in config.lora_layers:
-            tmp_layer_list[ii] = modify_lora_layer(tmp_layer_list[ii], config)
+        for i in range(config.num_hidden_layers):
+            if i in config.lora_layers:
+                tmp_layer_list[i] = modify_lora_layer(tmp_layer_list[i], config)
         self.layer = nn.ModuleList(tmp_layer_list)
         self.gradient_checkpointing = False
 
 class AdapterRobertaLayer(RobertaLayer):
     def __init__(self, config):
         super().__init__(config)
-        self.adapter = Adapter(config)
-        if config.is_parallel:
-            self.feed_forward_chunk = self.parallel_feed_forward_chunk
-        else:
-            self.feed_forward_chunk = self.sequential_feed_forward_chunk
+        self.adapter = Adapter(config) if "ffn" in config.position else None
+        # self.adapter_ = Adapter(config) if "attn" in config.position else None
+        if "ffn" in config.position:
+            if config.is_parallel:
+                self.feed_forward_chunk = self.parallel_feed_forward_chunk
+            else:
+                self.feed_forward_chunk = self.sequential_feed_forward_chunk
+        if "attn" in config.position:
+            self.attention.output = AdapterRobertaSelfOutput(config)
+
     def sequential_feed_forward_chunk(self, attention_output):
         intermediate_output = self.intermediate(attention_output)
         layer_output = self.output(intermediate_output, attention_output)
@@ -150,3 +186,21 @@ class AdapterRobertaLayer(RobertaLayer):
         adapter_output = self.adapter(attention_output)
         layer_output = self.output(intermediate_output, adapter_output)
         return layer_output
+
+class AdapterRobertaSelfOutput(RobertaSelfOutput):
+    def __init__(self, config):
+        super().__init__(config)
+        self.adapter = Adapter(config)
+    
+    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+        hidden_states = self.adapter(hidden_states)
+        return hidden_states
+
+class LoraRandInit(Lora):
+    def reset_parameters(self) -> None:
+        super(Lora, self).reset_parameters()
+        nn.init.kaiming_uniform_(self.lora_down, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.lora_up, a=math.sqrt(5))
