@@ -15,9 +15,9 @@
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE."""
 # You can also adapt this script on your own text classification task. Pointers for this are left as comments.
+from ray import tune
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune import CLIReporter
-from ray import tune
 import torch
 import logging
 import os

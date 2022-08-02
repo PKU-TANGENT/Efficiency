@@ -4,12 +4,14 @@ export TOKENIZERS_PARALLELISM=false
 # export CUDA_VISIBLE_DEVICES=$2
 # model_name_or_path=$3
 export TASK_NAME=wnli
-export CUDA_VISIBLE_DEVICES=3
+# export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 model_name_or_path=roberta-base
 # model_name_or_path="JeremiahZ/roberta-base-rte"
 prefix="hypersearch-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}$model_name_or_path/$TASK_NAME/"
+export WANDB_DISABLED=true
 # python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
 python run_glue_hyper_search.py \
   --task_name $TASK_NAME \
@@ -32,6 +34,7 @@ python run_glue_hyper_search.py \
   --load_best_model_at_end \
   --greater_is_better True \
   --private \
+  --disable_tqdm True \
   # --hub_model_id $hub_model_id \
   # --push_to_hub \
 

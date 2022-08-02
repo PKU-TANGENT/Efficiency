@@ -2,7 +2,8 @@
 export TOKENIZERS_PARALLELISM=false
 export WANDB_DISABLED="true"
 export TASK_NAME=rte
-export CUDA_VISIBLE_DEVICES=0,1,2,4,6
+# export CUDA_VISIBLE_DEVICES=0,1,2,4,6
+export CUDA_VISIBLE_DEVICES=7
 model_name_or_path=roberta-base
 # export TASK_NAME=$1
 # export CUDA_VISIBLE_DEVICES=$2
@@ -14,8 +15,8 @@ prefix="hypersearch-swam-"
 hub_model_id="${prefix}${model_name_or_path/\//"-"}-${TASK_NAME}"
 output_dir="./fine-tune/${prefix}${model_name_or_path}/${TASK_NAME}/"
 export WANDB_PROJECT=$model_name_or_path
-# python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
-python swam_glue_hyper_search.py \
+# python swam_glue_hyper_search.py \
+python -m debugpy --listen 127.0.0.1:9999 --wait-for-client run_glue_hyper_search.py \
   --task_name $TASK_NAME \
   --model_name_or_path $model_name_or_path \
   --do_train \

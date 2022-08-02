@@ -15,6 +15,7 @@
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE."""
 # You can also adapt this script on your own text classification task. Pointers for this are left as comments.
+from ray import tune
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune import CLIReporter
 import torch
@@ -28,7 +29,6 @@ from huggingface_hub import update_repo_visibility
 import datasets
 import numpy as np
 from datasets import load_dataset, load_metric
-from ray import tune
 import importlib
 import transformers
 from transformers import (
@@ -455,8 +455,6 @@ def main():
         # We will pad later, dynamically at batch creation, to the max sequence length in each batch
         padding = False
 
-
-
     if data_args.max_seq_length > tokenizer.model_max_length:
         logger.warning(
             f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
@@ -556,37 +554,33 @@ def main():
         data_collator=data_collator,
         model_init=model_init,
     )
-    # def my_hp_space_ray(trial):
-    #     return {
-    #         "learning_rate":tune.uniform([1e-5, 3e-5]),
-    #         "per_device_train_batch_size": tune.uniform([16, 32]),
-    #         "num_train_epochs": tune.uniform([3, 10]),
-    #     }
+    scheduler = PopulationBasedTraining(
+        time_attr="training_iteration",
+        perturbation_interval=1,
+        hyperparam_mutations={
+            "learning_rate":tune.uniform(1e-5,5e-5),
+            "per_device_train_batch_size": [16, 32, 64],   
+            "weight_decay": tune.uniform(0,0.3),
+        },
+        metric="eval_"+task_to_metrics[data_args.task_name],
+    )
     reporter = CLIReporter(
         parameter_columns={
-            # "weight_decay": "w_decay",
+            "weight_decay": "w_decay",
             "learning_rate": "lr",
-            "per_device_train_batch_size": "train_bs/gpu",
-            # "num_train_epochs": "num_epochs",
+            "per_device_train_batch_size": "bs",
+            "num_train_epochs": "n_epochs",
         },
         metric_columns=["eval_"+task_to_metrics[data_args.task_name],"epoch", "training_iteration"],
     )
-    tune_space = lambda _ : {
-            "learning_rate":tune.grid_search([1e-5,2e-5,3e-5]),
-            "per_device_train_batch_size": tune.grid_search([16, 32]),
-            "num_train_epochs": tune.grid_search([3,5,10]),
-            "warmup_ratio": tune.uniform(0,0.1),
-            "weight_decay": tune.uniform(0,0.3),
-        }
-    # scheduler = PopulationBasedTraining(
-    #     time_attr="training_iteration",
-    #     perturbation_interval=1,
-    #     hyperparam_mutations={
-    #         "learning_rate":tune.uniform(1e-5,3e-5),
-    #         "per_device_train_batch_size": tune.grid_search([16, 32]),   
-    #     },
-    #     metric="eval_"+task_to_metrics[data_args.task_name],
-    # )
+    tune_space=lambda _ : {
+        "learning_rate":tune.choice([2e-5,3e-5,5e-5]),
+        "per_device_train_batch_size": tune.choice([16, 32, 64]),
+        "per_device_train_batch_size": 16,
+        "num_train_epochs": tune.randint(6,20),
+        "warmup_ratio": tune.uniform(0,0.06),
+        "weight_decay": tune.uniform(0,0.3),
+    }
     def compute_objective(metrics):
         metric_key = task_to_metrics[data_args.task_name]
         metric_key = metric_key if metric_key in metrics else "eval_" + metric_key
@@ -598,22 +592,19 @@ def main():
             direction="maximize", 
             backend="ray",
             keep_checkpoints_num=1,
-            n_trials=3,
+            n_trials=8,
             mode="max",
-            # checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
-            checkpoint_score_attr="training_iteration",
-            # scheduler=scheduler,
+            checkpoint_score_attr="eval_"+task_to_metrics[data_args.task_name],
+            scheduler=scheduler,
             compute_objective=compute_objective,
-            resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
+            resources_per_trial={"cpu": 4, "gpu": gpus_per_trial},
             progress_reporter=reporter,
-            local_dir="./ray_results/",
-            name="tune_transformer_grid",
+            local_dir="./ray_results/pbt_glue"+data_args.task_name,
+            name="pbt_glue_"+data_args.task_name,
             log_to_file=True,
         )
         print(best_run)
         return
-        for n, v in best_run.hyperparameters.items():
-            setattr(trainer.args, n, v)    
     # Training
     if training_args.do_train:
         checkpoint = None
