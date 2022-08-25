@@ -1,5 +1,5 @@
 <!---
-Copyright 2020 The HuggingFace Team. All rights reserved.
+Copyright 2020 Jeremiah Zhou. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,20 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# Text classification examples
+# On the Effectiveness of Parameter Efficient Methods: Sparsity and FFNs Matter
+Offical Repo for paper []().
+This README incorporates results from [`HuggingFace Repo GLUE README`](https://github.com/huggingface/transformers/blob/main/examples/pytorch/text-classification/README.md)
+## Environment
+Here are the steps to create the environment from scratch. We provide an exported .yml file using conda in `env/env.yml`, yet it should only be used as a reference. We experience problems directly creating a conda env from this file. We presuppose the installation of `conda`.
+
+```bash
+# create conda env hgf, change name if needed
+conda env create -n hgf python=3.8.13 -y
+conda activate hgf
+conda install pytorch==1.11.0 cudatoolkit=11.3 -c pytorch
+pip install transformers==4.22.0
+pip install datasets==2.1.0
+# for easy debugging
+pip install debugpy
+```
 
 ## GLUE tasks
 
 Based on the script [`run_glue.py`](https://github.com/huggingface/transformers/blob/main/examples/pytorch/text-classification/run_glue.py).
 
 Fine-tuning the library models for sequence classification on the GLUE benchmark: [General Language Understanding
-Evaluation](https://gluebenchmark.com/). This script can fine-tune any of the models on the [hub](https://huggingface.co/models)
-and can also be used for a dataset hosted on our [hub](https://huggingface.co/datasets) or your own data in a csv or a JSON file
-(the script might need some tweaks in that case, refer to the comments inside for help).
+Evaluation](https://gluebenchmark.com/). 
 
 GLUE is made up of a total of 9 different tasks. Here is how to run the script on one of them:
 
-```bash
+<!-- ```bash
 export TASK_NAME=mrpc
 
 python run_glue.py \
@@ -40,7 +53,7 @@ python run_glue.py \
   --learning_rate 2e-5 \
   --num_train_epochs 3 \
   --output_dir /tmp/$TASK_NAME/
-```
+``` -->
 
 where task name can be one of cola, sst2, mrpc, stsb, qqp, mnli, qnli, rte, wnli.
 
@@ -64,22 +77,7 @@ single Titan RTX was used):
 Some of these results are significantly different from the ones reported on the test set of GLUE benchmark on the
 website. For QQP and WNLI, please refer to [FAQ #12](https://gluebenchmark.com/faq) on the website.
 
-The following example fine-tunes BERT on the `imdb` dataset hosted on our [hub](https://huggingface.co/datasets):
 
-```bash
-python run_glue.py \
-  --model_name_or_path bert-base-cased \
-  --dataset_name imdb  \
-  --do_train \
-  --do_predict \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/imdb/
-```
-
-> If your model classification head dimensions do not fit the number of labels in the dataset, you can specify `--ignore_mismatched_sizes` to adapt it.
 
 
 ### Mixed precision training
@@ -101,103 +99,3 @@ Using mixed precision training usually results in 2x-speedup for training with t
 | QNLI  | Accuracy                     | 90.66       | 40:57         | 90.96         | 20:16                |
 | RTE   | Accuracy                     | 65.70       | 57            | 65.34         | 29                   |
 | WNLI  | Accuracy                     | 56.34       | 24            | 56.34         | 12                   |
-
-
-## PyTorch version, no Trainer
-
-Based on the script [`run_glue_no_trainer.py`](https://github.com/huggingface/transformers/blob/main/examples/pytorch/text-classification/run_glue_no_trainer.py).
-
-Like `run_glue.py`, this script allows you to fine-tune any of the models on the [hub](https://huggingface.co/models) on a
-text classification task, either a GLUE task or your own data in a csv or a JSON file. The main difference is that this
-script exposes the bare training loop, to allow you to quickly experiment and add any customization you would like.
-
-It offers less options than the script with `Trainer` (for instance you can easily change the options for the optimizer
-or the dataloaders directly in the script) but still run in a distributed setup, on TPU and supports mixed precision by
-the mean of the [🤗 `Accelerate`](https://github.com/huggingface/accelerate) library. You can use the script normally
-after installing it:
-
-```bash
-pip install git+https://github.com/huggingface/accelerate
-```
-
-then
-
-```bash
-export TASK_NAME=mrpc
-
-python run_glue_no_trainer.py \
-  --model_name_or_path bert-base-cased \
-  --task_name $TASK_NAME \
-  --max_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/$TASK_NAME/
-```
-
-You can then use your usual launchers to run in it in a distributed environment, but the easiest way is to run
-
-```bash
-accelerate config
-```
-
-and reply to the questions asked. Then
-
-```bash
-accelerate test
-```
-
-that will check everything is ready for training. Finally, you can launch training with
-
-```bash
-export TASK_NAME=mrpc
-
-accelerate launch run_glue_no_trainer.py \
-  --model_name_or_path bert-base-cased \
-  --task_name $TASK_NAME \
-  --max_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/$TASK_NAME/
-```
-
-This command is the same and will work for:
-
-- a CPU-only setup
-- a setup with one GPU
-- a distributed training with several GPUs (single or multi node)
-- a training on TPUs
-
-Note that this library is in alpha release so your feedback is more than welcome if you encounter any problem using it.
-
-## XNLI
-
-Based on the script [`run_xnli.py`](https://github.com/huggingface/transformers/examples/pytorch/text-classification/run_xnli.py).
-
-[XNLI](https://www.nyu.edu/projects/bowman/xnli/) is a crowd-sourced dataset based on [MultiNLI](http://www.nyu.edu/projects/bowman/multinli/). It is an evaluation benchmark for cross-lingual text representations. Pairs of text are labeled with textual entailment annotations for 15 different languages (including both high-resource language such as English and low-resource languages such as Swahili).
-
-#### Fine-tuning on XNLI
-
-This example code fine-tunes mBERT (multi-lingual BERT) on the XNLI dataset. It runs in 106 mins on a single tesla V100 16GB.
-
-```bash
-python run_xnli.py \
-  --model_name_or_path bert-base-multilingual-cased \
-  --language de \
-  --train_language en \
-  --do_train \
-  --do_eval \
-  --per_device_train_batch_size 32 \
-  --learning_rate 5e-5 \
-  --num_train_epochs 2.0 \
-  --max_seq_length 128 \
-  --output_dir /tmp/debug_xnli/ \
-  --save_steps -1
-```
-
-Training with the previously defined hyper-parameters yields the following results on the **test** set:
-
-```bash
-acc = 0.7093812375249501
-```

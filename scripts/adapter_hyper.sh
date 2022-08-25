@@ -1,6 +1,6 @@
 #!/bin/bash
 export TOKENIZERS_PARALLELISM=false
-# export WANDB_DISABLED="true"
+export WANDB_DISABLED="true"
 TASK_NAME=mrpc
 # export CUDA_VISIBLE_DEVICES=0
 model_name_or_path=roberta-base
@@ -12,10 +12,10 @@ else
 fi
 export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
-project_dim=1
+project_dim=2
 # project_dim=$2
 adapter_layers=$2
-# adapter_layers=5
+# adapter_layers=5,10
 is_parallel=True
 identity_init=False
 # project_dim=$3
