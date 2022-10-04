@@ -25,10 +25,9 @@ Here are the steps to create the environment from scratch. We provide an exporte
 conda env create -n hgf python=3.8.13 -y
 conda activate hgf
 conda install pytorch==1.11.0 cudatoolkit=11.3 -c pytorch
-pip install transformers==4.22.0
-pip install datasets==2.1.0
+pip install transformers==4.22.0 datasets==2.1.0
 # for easy debugging
-pip install debugpy
+# pip install debugpy
 ```
 
 ## GLUE tasks
