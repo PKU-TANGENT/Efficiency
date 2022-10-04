@@ -2,7 +2,7 @@
 export TOKENIZERS_PARALLELISM=false
 export WANDB_DISABLED="true"
 TASK_NAME=mrpc
-# export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0
 model_name_or_path=roberta-base
 # TASK_NAME=$2
 if [[ "${TASK_NAME}" == "mrpc" ]]; then
@@ -10,12 +10,12 @@ if [[ "${TASK_NAME}" == "mrpc" ]]; then
 else
   num_train_epochs=10
 fi
-export CUDA_VISIBLE_DEVICES=$1
+# export CUDA_VISIBLE_DEVICES=$1
 # model_name_or_path=$3
 project_dim=2
 # project_dim=$2
-adapter_layers=$2
-# adapter_layers=5,10
+# adapter_layers=$2
+adapter_layers=5
 is_parallel=True
 identity_init=False
 # project_dim=$3

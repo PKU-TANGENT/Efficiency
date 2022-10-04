@@ -39,7 +39,7 @@ class HypersearchTrainer(Trainer):
         if self.optimizer is None:
             decay_parameters = get_parameter_names(opt_model, [nn.LayerNorm])
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
-            tmp_criterion = lambda x: "classifier" in x or "swam" in x
+            tmp_criterion = lambda x: "classifier" in x
             optimizer_grouped_parameters = [
                 {
                     "params": [p for n, p in opt_model.named_parameters() if n in decay_parameters and not tmp_criterion(n)],
