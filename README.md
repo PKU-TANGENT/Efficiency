@@ -50,5 +50,3 @@ Useful scripts are under the `scripts` directory. Sample usage with respect to `
 ```bash
 bash scripts/adapter_hyper.sh
 ```
-### Other Information
-Hyper-parameter search based on `ray-tune` and `PBT` algorithm is implemented in `run_glue_hyper_search.py`. `hyper_search.sh` is a useful script that defines relevant arguments. 
